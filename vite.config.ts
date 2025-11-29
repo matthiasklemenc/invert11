@@ -6,13 +6,13 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // IMPORTANT: GitHub Pages repo subfolder
-const GITHUB_BASE = '/invertfm/';
+const GITHUB_BASE = '/invert11/';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
 
   return {
-    // Needed so all assets / links are resolved as /invertfm/...
+    // Needed so all assets / links are resolved as /invert11/...
     base: GITHUB_BASE,
 
     // Build into "docs" so GitHub Pages can serve it from main/docs
