@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Permissions-Policy" content='autoplay=(self "https://www.youtube.com")'>
+
+    <link rel="stylesheet" href="./index.css" />
+    <link rel="icon" type="image/png" href="./icons/icon-512.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-512.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INVERT FM - Music Player</title>
+
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#4f46e5" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { #1a202c; }
+      ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #718096; }
+    </style>
+
+    <!-- Import maps for AI Studio sandbox -->
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "vite": "https://aistudiocdn.com/vite@^7.1.12",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "tone": "https://aistudiocdn.com/tone@^15.1.22",
+    "@ffmpeg/ffmpeg": "https://aistudiocdn.com/@ffmpeg/ffmpeg@^0.12.15",
+    "@ffmpeg/util": "https://aistudiocdn.com/@ffmpeg/util@^0.12.2",
+    "@ffmpeg/core/": "https://aistudiocdn.com/@ffmpeg/core@^0.12.15/",
+    "url": "https://aistudiocdn.com/url@^0.11.4"
+  }
+}
+</script>
+
+    <!-- Sandbox/iframe guard -->
+    <script>
+      (function () {
+        const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
+        const onAIStudio = /(^|\.)ai\.studio$/i.test(location.hostname);
+        if (inIframe || onAIStudio) {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+            navigator.serviceWorker.register = () => Promise.reject(new Error('SW disabled in sandbox'));
+          }
+          if (window.caches && typeof caches.keys === 'function') {
+            caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+          }
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/index.css">
+  </head>
+
+  <body class="bg-gray-900">
+    <div id="root"></div>
+
+    <!-- NUR DIESEN IMPORT BEHALTEN -->
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
