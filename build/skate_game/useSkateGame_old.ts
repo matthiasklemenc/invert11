@@ -121,6 +121,31 @@ export function useSkateGame() {
         };
     }, []);
 
+// --- FIX CANVAS RESOLUTION (FINAL SAFE VERSION) ---
+useEffect(() => {
+    const resizeCanvas = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+
+        // Set real resolution to match CSS size
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    };
+
+    resizeCanvas();
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("orientationchange", resizeCanvas);
+
+    return () => {
+        window.removeEventListener("resize", resizeCanvas);
+        window.removeEventListener("orientationchange", resizeCanvas);
+    };
+}, []);
+
+
     const saveHighScore = (newScore: number) => {
         if (newScore > highScore) {
             setHighScore(newScore);
@@ -431,6 +456,9 @@ export function useSkateGame() {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+
+// --- DYNAMIC FLOOR FIX (WORKS MOBILE + DESKTOP) ---
+state.currentFloorY = canvas.height * 0.82;
 
         if (!lastTimeRef.current) {
             lastTimeRef.current = timestamp;

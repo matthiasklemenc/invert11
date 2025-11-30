@@ -92,6 +92,39 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
     } = useSkateGame();
 
     useEffect(() => {
+        // --- RESOLUTION FIX ---
+        // Sets a fixed logical height so the game coordinates (e.g. floor at Y=250)
+        // are consistent across all screen sizes.
+        const updateResolution = () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            
+            // Fixed logical height ensures the game world scales properly visually.
+            // 360px is a standard mobile landscape height.
+            const TARGET_HEIGHT = 360; 
+            
+            // Get the current display size from CSS layout
+            const rect = canvas.getBoundingClientRect();
+            if (rect.height === 0) return; 
+            
+            const aspect = rect.width / rect.height;
+            
+            // Set the drawing buffer size
+            canvas.height = TARGET_HEIGHT;
+            canvas.width = TARGET_HEIGHT * aspect;
+        };
+        
+        updateResolution();
+        window.addEventListener('resize', updateResolution);
+        window.addEventListener('orientationchange', updateResolution);
+        
+        return () => {
+            window.removeEventListener('resize', updateResolution);
+            window.removeEventListener('orientationchange', updateResolution);
+        };
+    }, [canvasRef]);
+
+    useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.code === "Space") {
                 e.preventDefault();
@@ -181,7 +214,7 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
                 className="w-full flex-grow bg-gray-900"
                 style={{
                     width: "100%",
-                    height: "calc(var(--vh, 1vh) * 100)",
+                    height: "100%", // Fill the parent container completely
                     display: "block"
                 }}
             />
