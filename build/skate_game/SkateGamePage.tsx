@@ -119,8 +119,7 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
                     fill="currentColor"
                     className="w-16 h-16 mb-6 animate-pulse text-[#c52323]"
                 >
-                    <path d="M14.25 2.25H18a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V4.56l-2.65 2.65a.75.75 0 1 1-1.06-1.06l2.65-2.65h-1.94a.75.75 0 0 1 0-1.5Zm-10.5 4.5a.75.75 0 0 1 0-1.06l2.65-2.65h-1.94a.75.75 0 0 1 0-1.5h3.75a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V4.56l-2.65 2.65a.75.75 0 0 1-1.06 0ZM20.25 12v5.25c0 1.243-1.007 2.25-2.25 2.25H6c-1.243 0-2.25-1.007-2.25-2.25V12c0-1.243 1.007-2.25 2.25-2.25h12c1.243 0 0
-                    2.25 1.007 2.25 2.25ZM18.75 12a.75.75 0 0 0-.75-.75H6a.75.75 0 0 0-.75.75v5.25c0 .414.336.75.75.75h12a.75.75 0 0 0 .75-.75V12Z" />
+                    <path d="M14.25 2.25H18a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V4.56l-2.65 2.65a.75.75 0 1 1-1.06-1.06l2.65-2.65h-1.94a.75.75 0 0 1 0-1.5Zm-10.5 4.5a.75.75 0 0 1 0-1.06l2.65-2.65h-1.94a.75.75 0 0 1 0-1.5h3.75a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V4.56l-2.65 2.65a.75.75 0 0 1-1.06 0ZM20.25 12v5.25c0 1.243-1.007 2.25-2.25 2.25H6c-1.243 0-2.25-1.007-2.25-2.25V12c0-1.243 1.007-2.25 2.25-2.25h12c1.243 0 2.25 1.007 2.25 2.25ZM18.75 12a.75.75 0 0 0-.75-.75H6a.75.75 0 0 0-.75.75v5.25c0 .414.336.75.75.75h12a.75.75 0 0 0 .75-.75V12Z" />
                 </svg>
                 <h2 className="text-2xl font-bold uppercase tracking-widest mb-2 text-center">
                     Rotate Device
@@ -140,7 +139,7 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
 
     return (
         <div
-            className="min-h-screen bg-gray-900 text-white flex flex-col relative"
+            className="h-screen bg-gray-900 text-white flex flex-col relative"
             onMouseDown={handleTouchStart}
             onMouseUp={handleTouchEnd}
             onTouchStart={handleTouchStart}
