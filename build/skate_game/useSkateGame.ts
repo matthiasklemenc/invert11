@@ -457,6 +457,9 @@ useEffect(() => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+// --- DYNAMIC FLOOR FIX (WORKS MOBILE + DESKTOP) ---
+state.currentFloorY = canvas.height * 0.82;
+
         if (!lastTimeRef.current) {
             lastTimeRef.current = timestamp;
         }
