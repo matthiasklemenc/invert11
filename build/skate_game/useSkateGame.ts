@@ -121,6 +121,38 @@ export function useSkateGame() {
         };
     }, []);
 
+// --- FIX CANVAS RESOLUTION (MOBILE + DESKTOP) ---
+useEffect(() => {
+    const resizeCanvas = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+
+        // Set REAL resolution
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+
+        // Scale ctx so drawing uses CSS coords
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.scale(dpr, dpr);
+        }
+    };
+
+    resizeCanvas();
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("orientationchange", resizeCanvas);
+
+    return () => {
+        window.removeEventListener("resize", resizeCanvas);
+        window.removeEventListener("orientationchange", resizeCanvas);
+    };
+}, []);
+
+
     const saveHighScore = (newScore: number) => {
         if (newScore > highScore) {
             setHighScore(newScore);
