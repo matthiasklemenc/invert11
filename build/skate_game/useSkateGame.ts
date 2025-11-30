@@ -121,24 +121,17 @@ export function useSkateGame() {
         };
     }, []);
 
-// --- FIX CANVAS RESOLUTION (MOBILE + DESKTOP) ---
+// --- FIX CANVAS RESOLUTION (FINAL SAFE VERSION) ---
 useEffect(() => {
     const resizeCanvas = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const rect = canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
 
-        // Set REAL resolution
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-
-        // Scale ctx so drawing uses CSS coords
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-            ctx.scale(dpr, dpr);
-        }
+        // Set real resolution to match CSS size
+        canvas.width = rect.width;
+        canvas.height = rect.height;
     };
 
     resizeCanvas();
