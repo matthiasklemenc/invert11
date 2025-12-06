@@ -18,6 +18,11 @@ export default defineConfig(({ mode }) => {
     // Build into "docs" so GitHub Pages can serve it from main/docs
     build: {
       outDir: 'docs',
+      rollupOptions: {
+        // Externalize maplibre-gl so the build doesn't fail if it's missing in node_modules.
+        // The browser will resolve it via the importmap in index.html.
+        external: ['maplibre-gl'],
+      },
     },
 
     server: {
