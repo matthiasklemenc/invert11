@@ -452,6 +452,9 @@ useEffect(() => {
     };
 
     const loop = (timestamp: number) => {
+        // Fix: Declare state at the top to avoid TDZ when accessing state.currentFloorY
+        const state = stateRef.current;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -466,9 +469,8 @@ state.currentFloorY = canvas.height * 0.82;
         const deltaTimeMs = timestamp - lastTimeRef.current;
         lastTimeRef.current = timestamp;
 
-        const dt = isPaused || stateRef.current.status !== 'PLAYING' ? 0 : Math.min(deltaTimeMs / 16.667, 4.0);
+        const dt = isPaused || state.status !== 'PLAYING' ? 0 : Math.min(deltaTimeMs / 16.667, 4.0);
 
-        const state = stateRef.current;
         
         if (state.status === 'PLAYING' && !isPaused) {
             state.frame += dt;

@@ -91,25 +91,26 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
         closeShop
     } = useSkateGame();
 
+    // --- CANVAS RESOLUTION MANAGER ---
     useEffect(() => {
-        // --- RESOLUTION FIX ---
-        // Sets a fixed logical height so the game coordinates (e.g. floor at Y=250)
-        // are consistent across all screen sizes.
         const updateResolution = () => {
             const canvas = canvasRef.current;
             if (!canvas) return;
             
             // Fixed logical height ensures the game world scales properly visually.
-            // 360px is a standard mobile landscape height.
+            // The game logic assumes a floor at Y=250. 
+            // Setting height to 360px places the floor at approx 70% down the screen, 
+            // which is a good ratio for gameplay.
             const TARGET_HEIGHT = 360; 
             
-            // Get the current display size from CSS layout
+            // Get the current display size from CSS layout (which is 100% width/height)
             const rect = canvas.getBoundingClientRect();
             if (rect.height === 0) return; 
             
             const aspect = rect.width / rect.height;
             
-            // Set the drawing buffer size
+            // Set the internal drawing buffer size
+            // This decouples the game logic coordinates from the physical screen pixels
             canvas.height = TARGET_HEIGHT;
             canvas.width = TARGET_HEIGHT * aspect;
         };
@@ -172,7 +173,7 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
 
     return (
         <div
-            className="h-screen bg-gray-900 text-white flex flex-col relative"
+            className="fixed inset-0 bg-gray-900 text-white flex flex-col z-0"
             onMouseDown={handleTouchStart}
             onMouseUp={handleTouchEnd}
             onTouchStart={handleTouchStart}

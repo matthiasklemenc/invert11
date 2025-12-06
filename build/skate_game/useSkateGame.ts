@@ -121,31 +121,6 @@ export function useSkateGame() {
         };
     }, []);
 
-// --- FIX CANVAS RESOLUTION (FINAL SAFE VERSION) ---
-useEffect(() => {
-    const resizeCanvas = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const rect = canvas.getBoundingClientRect();
-
-        // Set real resolution to match CSS size
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-    };
-
-    resizeCanvas();
-
-    window.addEventListener("resize", resizeCanvas);
-    window.addEventListener("orientationchange", resizeCanvas);
-
-    return () => {
-        window.removeEventListener("resize", resizeCanvas);
-        window.removeEventListener("orientationchange", resizeCanvas);
-    };
-}, []);
-
-
     const saveHighScore = (newScore: number) => {
         if (newScore > highScore) {
             setHighScore(newScore);
@@ -212,11 +187,7 @@ useEffect(() => {
         if (purchased) {
             state.score -= cost;
             state.spaceDuration -= 20; // Extend time
-            // state.hasVisitedShop = true; // Commented out to allow multiple purchases
             setScore(state.score); 
-            
-            // NOTE: We do NOT close the shop automatically anymore.
-            // User can buy multiple items.
         } 
     };
 
@@ -270,7 +241,6 @@ useEffect(() => {
         state.collectibles = [];
         state.projectiles = [];
         
-        // IMPORTANT: Record totalScroll at entry for relative OXXO positioning
         state.spaceEntryScroll = state.totalScroll;
 
         const startPlatY = 250; 
@@ -297,7 +267,6 @@ useEffect(() => {
         state.shopCooldown = 0; 
         state.hasVisitedShop = false; 
         
-        // Reset powerups on entry
         state.powerups.has360Laser = false;
         state.powerups.speedBoostTimer = 0;
         state.powerups.psychedelicMode = false;
@@ -327,7 +296,6 @@ useEffect(() => {
          state.abductionActive = false;
          state.ufoLocked = false;
          
-         // Clear Powerups
          state.powerups.has360Laser = false;
          state.powerups.speedBoostTimer = 0;
          state.powerups.psychedelicMode = false;
@@ -395,7 +363,6 @@ useEffect(() => {
             saveHighScore(state.score);
             getSoundManager().stopMusic();
         } else {
-            // Shortened timeout for immediate respawn feel
             setTimeout(() => {
                 if (state.world === 'UNDERWORLD') {
                     forceUnderworldRespawn();
@@ -421,7 +388,6 @@ useEffect(() => {
         if (state.world !== 'SPACE' || state.player.state === 'CRASHED' || state.player.state === 'ABDUCTED' || state.abductionActive) return;
 
         if (state.powerups.has360Laser) {
-            // 360 Burst
             const directions = 16;
             for (let i = 0; i < directions; i++) {
                 const angle = (Math.PI * 2 / directions) * i;
@@ -435,7 +401,6 @@ useEffect(() => {
                 });
             }
         } else {
-            // Standard shot - 3 Parallel strokes
             const offsets = [0, -20, 20];
             offsets.forEach((off, idx) => {
                 state.projectiles.push({
@@ -452,16 +417,11 @@ useEffect(() => {
     };
 
     const loop = (timestamp: number) => {
-        // Fix: Declare state at the top to avoid TDZ when accessing state.currentFloorY
         const state = stateRef.current;
-
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-
-// --- DYNAMIC FLOOR FIX (WORKS MOBILE + DESKTOP) ---
-state.currentFloorY = canvas.height * 0.82;
 
         if (!lastTimeRef.current) {
             lastTimeRef.current = timestamp;
@@ -471,7 +431,6 @@ state.currentFloorY = canvas.height * 0.82;
 
         const dt = isPaused || state.status !== 'PLAYING' ? 0 : Math.min(deltaTimeMs / 16.667, 4.0);
 
-        
         if (state.status === 'PLAYING' && !isPaused) {
             state.frame += dt;
             
@@ -488,7 +447,6 @@ state.currentFloorY = canvas.height * 0.82;
             const isArrested = state.player.state === 'ARRESTED';
             const isAbducted = state.player.state === 'ABDUCTED';
 
-            // Update Projectiles
             state.projectiles.forEach(p => {
                 p.x += p.vx * dt;
                 p.y += p.vy * dt;
@@ -496,15 +454,13 @@ state.currentFloorY = canvas.height * 0.82;
             });
             state.projectiles = state.projectiles.filter(p => p.life > 0);
 
-            // Check Projectile Collisions with Aliens
             state.projectiles.forEach(p => {
                 for (let i = state.obstacles.length - 1; i >= 0; i--) {
                     const obs = state.obstacles[i];
                     if (obs.type === 'alien_ship') {
-                        // Collision detection
                         if (p.x + 30 > obs.x && p.x < obs.x + obs.w && Math.abs(p.y - obs.y) < 40) {
-                            state.obstacles.splice(i, 1); // Destroy alien
-                            p.life = 0; // Destroy laser
+                            state.obstacles.splice(i, 1);
+                            p.life = 0;
                             state.score += 500;
                             state.ufoKillCount++;
                             addFloatingText(obs.x, obs.y, "BLASTED! +500", "#a3e635");
@@ -526,7 +482,6 @@ state.currentFloorY = canvas.height * 0.82;
                 state.player.rotation += 0.05 * dt;
 
                 if (state.transitionY <= 0) {
-                    // Landed
                     state.world = 'NORMAL';
                     state.obstacles = [];
                     state.collectibles = [];
@@ -544,7 +499,6 @@ state.currentFloorY = canvas.height * 0.82;
                     state.abductionActive = false;
                     state.ufoLocked = false;
                     
-                    // Clear Powerups
                     state.powerups.has360Laser = false;
                     state.powerups.speedBoostTimer = 0;
                     state.powerups.psychedelicMode = false;
@@ -597,7 +551,6 @@ state.currentFloorY = canvas.height * 0.82;
                      state.spawnedExit = false;
                 }
             } else {
-                // SCROLL LOGIC
                 if (!isNatas && !isArrested && !state.ufoLocked && state.player.state !== 'CRASHED') {
                     const scrollAmount = currentSpeed * dt;
                     
@@ -630,20 +583,14 @@ state.currentFloorY = canvas.height * 0.82;
                         if (state.nextObstacleDist > 0) state.nextObstacleDist = 0;
                     }
                 } else if ((state.world as string) === 'SPACE') {
-                     // Check OXXO Shop Collision
                      if (state.shopCooldown <= 0 && !state.abductionActive && !state.ufoLocked && state.player.state !== 'CRASHED' && !state.hasVisitedShop) {
                          const oxxoPos = getOxxoPosition(canvas.width, canvas.height, state.totalScroll, 0, state.spaceEntryScroll); 
                          const playerAbsX = state.player.x;
                          const playerAbsY = state.currentFloorY + state.player.y;
-                         
-                         // The shop building is drawn offset by roughly -88 Y from the planet center.
-                         // Let's refine the collision to only hit the building on top.
                          const shopCenterY = oxxoPos.y - 88;
                          const shopCenterX = oxxoPos.x;
-
                          const dist = Math.sqrt(Math.pow(playerAbsX - shopCenterX, 2) + Math.pow(playerAbsY - shopCenterY, 2));
                          
-                         // Tighter radius for the building
                          if (dist < 60) { 
                              setUiState('OXXO_SHOP');
                              state.status = 'OXXO_SHOP';
@@ -670,7 +617,6 @@ state.currentFloorY = canvas.height * 0.82;
                          if (bigUfo) {
                              const ufoCenterX = bigUfo.x + bigUfo.w/2;
                              const screenCenter = canvas.width / 2;
-                             
                              const isValidState = state.player.state !== 'CRASHED' && state.player.state !== 'TUMBLING' && state.player.state !== 'ARRESTED';
 
                              if (ufoCenterX <= screenCenter && !state.ufoLocked && isValidState) {
@@ -830,25 +776,14 @@ state.currentFloorY = canvas.height * 0.82;
                              }
                          }
 
-                         // Modified UFO Logic: Half amount (approx), random horizontal distribution
-                         // 80% chance to spawn
                          if (Math.random() > 0.2) { 
-                             // Base was 5, user requested half. Let's do 3.
-                             // Chips powerup triples it.
                              const baseCount = 3;
                              const ufoCount = state.powerups.doubleSpawnRate ? (baseCount * 3) : baseCount; 
                              
                              for(let k=0; k<ufoCount; k++) {
-                                 // Random horizontal distribution:
-                                 // Spread them out over a wider range relative to the spawnX
-                                 // spread width approx 800px, somewhat centered around the upcoming platform area
                                  const randomOffsetX = (Math.random() * 800) - 200; 
-                                 
-                                 // Random vertical offset
                                  const randomOffsetY = (Math.random() * 150) - 50; 
-                                 
                                  const alienX = spawnX + randomOffsetX; 
-                                 // Base height around 200px above platform
                                  const alienY = platY - 200 + randomOffsetY; 
                                  
                                  state.obstacles.push({
@@ -1010,181 +945,183 @@ state.currentFloorY = canvas.height * 0.82;
 
                 const playerX = state.player.x;
                 
-                const megaRamp = state.obstacles.find(o => o.type === 'mega_ramp' && playerX >= o.x && playerX <= o.x + o.w + 50);
-                if (megaRamp) {
-                    state.player.platformId = megaRamp.id;
-                } else if (!state.player.platformId) {
-                    if (state.player.y > -20 && state.player.vy >= 0) {
-                        const ramp = state.obstacles.find(o => 
-                            (o.type === 'ramp' || o.type === 'ramp_up' || o.type === 'concrete_structure') && 
-                            playerX >= o.x && 
-                            playerX <= o.x + o.w
-                        );
-                        
-                        if (ramp) {
-                             state.player.platformId = ramp.id;
-                             let newY = ramp.y;
-                             if (ramp.type === 'concrete_structure') {
-                                 const rampW = 100;
-                                 const relativeX = playerX - ramp.x;
-                                 if (relativeX < rampW) {
-                                     const progress = Math.max(0, relativeX / rampW);
-                                     newY = (ramp.y + ramp.h) - (ramp.h * progress);
-                                 } else {
-                                     newY = ramp.y;
-                                 }
-                             } else { 
-                                 const progress = (playerX - ramp.x) / ramp.w;
-                                 newY = (ramp.y + ramp.h) - (ramp.h * progress);
-                             }
-                             
-                             state.currentFloorY = newY;
-                             state.player.y = 0;
-                             state.player.vy = 0;
+                // Prevent platform snapping during abduction
+                if (!state.ufoLocked) {
+                    const megaRamp = state.obstacles.find(o => o.type === 'mega_ramp' && playerX >= o.x && playerX <= o.x + o.w + 50);
+                    if (megaRamp) {
+                        state.player.platformId = megaRamp.id;
+                    } else if (!state.player.platformId) {
+                        if (state.player.y > -20 && state.player.vy >= 0) {
+                            const ramp = state.obstacles.find(o => 
+                                (o.type === 'ramp' || o.type === 'ramp_up' || o.type === 'concrete_structure') && 
+                                playerX >= o.x && 
+                                playerX <= o.x + o.w
+                            );
+                            
+                            if (ramp) {
+                                state.player.platformId = ramp.id;
+                                let newY = ramp.y;
+                                if (ramp.type === 'concrete_structure') {
+                                    const rampW = 100;
+                                    const relativeX = playerX - ramp.x;
+                                    if (relativeX < rampW) {
+                                        const progress = Math.max(0, relativeX / rampW);
+                                        newY = (ramp.y + ramp.h) - (ramp.h * progress);
+                                    } else {
+                                        newY = ramp.y;
+                                    }
+                                } else { 
+                                    const progress = (playerX - ramp.x) / ramp.w;
+                                    newY = (ramp.y + ramp.h) - (ramp.h * progress);
+                                }
+                                
+                                state.currentFloorY = newY;
+                                state.player.y = 0;
+                                state.player.vy = 0;
+                            }
                         }
                     }
-                }
 
-                if (state.player.platformId) {
-                    const activePlatform = state.obstacles.find(o => o.id === state.player.platformId);
-                    if (activePlatform) {
-                        if (playerX < activePlatform.x || playerX > activePlatform.x + activePlatform.w) {
-                            if (activePlatform.type === 'mega_ramp' && playerX > activePlatform.x + activePlatform.w) {
-                                 exitUnderworld();
-                            }
-                            else if (activePlatform.type === 'ramp' && playerX > activePlatform.x + activePlatform.w) {
-                                state.player.vy = JUMP_FORCE;
-                                state.player.state = 'JUMPING';
-                                state.player.platformId = null;
-                                getSoundManager().playLaunch();
-                            } else {
-                                const nextPlat = state.obstacles.find(o => 
-                                    o.isPlatform && 
-                                    o.id !== activePlatform.id &&
-                                    playerX >= o.x && 
-                                    playerX <= o.x + o.w
-                                );
+                    if (state.player.platformId) {
+                        const activePlatform = state.obstacles.find(o => o.id === state.player.platformId);
+                        if (activePlatform) {
+                            if (playerX < activePlatform.x || playerX > activePlatform.x + activePlatform.w) {
+                                if (activePlatform.type === 'mega_ramp' && playerX > activePlatform.x + activePlatform.w) {
+                                    exitUnderworld();
+                                }
+                                else if (activePlatform.type === 'ramp' && playerX > activePlatform.x + activePlatform.w) {
+                                    state.player.vy = JUMP_FORCE;
+                                    state.player.state = 'JUMPING';
+                                    state.player.platformId = null;
+                                    getSoundManager().playLaunch();
+                                } else {
+                                    const nextPlat = state.obstacles.find(o => 
+                                        o.isPlatform && 
+                                        o.id !== activePlatform.id &&
+                                        playerX >= o.x && 
+                                        playerX <= o.x + o.w
+                                    );
 
-                                if (nextPlat) {
-                                    state.player.platformId = nextPlat.id;
-                                    let newFloorY = nextPlat.y;
-                                    if (nextPlat.type === 'ramp' || nextPlat.type === 'ramp_up') {
-                                        const progress = (playerX - nextPlat.x) / nextPlat.w;
-                                        newFloorY = (nextPlat.y + nextPlat.h) - (nextPlat.h * progress);
-                                    } else if (nextPlat.type === 'mega_ramp') {
-                                        const rampW = nextPlat.w;
-                                        const rampH = nextPlat.h;
-                                        const relativeX = playerX - nextPlat.x;
-                                        const safeW = Math.max(rampW, 1);
-                                        const safeH = Math.max(rampH, 1);
-                                        const xc = (safeW*safeW - safeH*safeH) / (2*safeW);
-                                        const R = safeW - xc;
-                                        const distFromCenterX = relativeX - xc;
-                                        const term = R*R - distFromCenterX*distFromCenterX;
-                                        if (term >= 0) {
-                                             newFloorY = nextPlat.y + Math.sqrt(term);
-                                        } else {
-                                             const progress = Math.max(0, Math.min(1, relativeX / rampW));
-                                             newFloorY = (nextPlat.y + nextPlat.h) - (nextPlat.h * progress);
-                                        }
-                                    } else if (nextPlat.type === 'stairs_down') {
-                                        const progress = (playerX - nextPlat.x) / nextPlat.w;
-                                        newFloorY = nextPlat.y + (nextPlat.h * progress);
-                                    } else if (nextPlat.type === 'concrete_structure') {
-                                        const rampW = 100;
-                                        const relativeX = playerX - nextPlat.x;
-                                        if (relativeX < rampW) {
-                                            const progress = relativeX / rampW;
+                                    if (nextPlat) {
+                                        state.player.platformId = nextPlat.id;
+                                        let newFloorY = nextPlat.y;
+                                        if (nextPlat.type === 'ramp' || nextPlat.type === 'ramp_up') {
+                                            const progress = (playerX - nextPlat.x) / nextPlat.w;
                                             newFloorY = (nextPlat.y + nextPlat.h) - (nextPlat.h * progress);
-                                        } else {
+                                        } else if (nextPlat.type === 'mega_ramp') {
+                                            const rampW = nextPlat.w;
+                                            const rampH = nextPlat.h;
+                                            const relativeX = playerX - nextPlat.x;
+                                            const safeW = Math.max(rampW, 1);
+                                            const safeH = Math.max(rampH, 1);
+                                            const xc = (safeW*safeW - safeH*safeH) / (2*safeW);
+                                            const R = safeW - xc;
+                                            const distFromCenterX = relativeX - xc;
+                                            const term = R*R - distFromCenterX*distFromCenterX;
+                                            if (term >= 0) {
+                                                newFloorY = nextPlat.y + Math.sqrt(term);
+                                            } else {
+                                                const progress = Math.max(0, Math.min(1, relativeX / rampW));
+                                                newFloorY = (nextPlat.y + nextPlat.h) - (nextPlat.h * progress);
+                                            }
+                                        } else if (nextPlat.type === 'stairs_down') {
+                                            const progress = (playerX - nextPlat.x) / nextPlat.w;
+                                            newFloorY = nextPlat.y + (nextPlat.h * progress);
+                                        } else if (nextPlat.type === 'concrete_structure') {
+                                            const rampW = 100;
+                                            const relativeX = playerX - nextPlat.x;
+                                            if (relativeX < rampW) {
+                                                const progress = relativeX / rampW;
+                                                newFloorY = (nextPlat.y + nextPlat.h) - (nextPlat.h * progress);
+                                            } else {
+                                                newFloorY = nextPlat.y;
+                                            }
+                                        } else if (nextPlat.type === 'space_platform' || nextPlat.type === 'solar_panel' || nextPlat.type === 'station_girder') {
                                             newFloorY = nextPlat.y;
                                         }
-                                    } else if (nextPlat.type === 'space_platform' || nextPlat.type === 'solar_panel' || nextPlat.type === 'station_girder') {
-                                        newFloorY = nextPlat.y;
-                                    }
 
-                                    state.currentFloorY = newFloorY;
-                                    state.player.y = 0;
-                                    state.player.vy = 0;
-                                } else {
-                                    const prevY = state.currentFloorY;
-                                    state.player.platformId = null;
-                                    
-                                    if ((state.world as string) === 'SPACE') {
-                                    } else {
-                                        state.currentFloorY = BASE_FLOOR_Y;
-                                    }
-                                    
-                                    if (prevY < state.currentFloorY) {
-                                        state.player.y = prevY - state.currentFloorY; 
-                                    } else {
+                                        state.currentFloorY = newFloorY;
                                         state.player.y = 0;
+                                        state.player.vy = 0;
+                                    } else {
+                                        const prevY = state.currentFloorY;
+                                        state.player.platformId = null;
+                                        
+                                        if ((state.world as string) === 'SPACE') {
+                                        } else {
+                                            state.currentFloorY = BASE_FLOOR_Y;
+                                        }
+                                        
+                                        if (prevY < state.currentFloorY) {
+                                            state.player.y = prevY - state.currentFloorY; 
+                                        } else {
+                                            state.player.y = 0;
+                                        }
                                     }
                                 }
+                            } else {
+                                if (activePlatform.type === 'ramp' || activePlatform.type === 'ramp_up') {
+                                    const progress = (playerX - activePlatform.x) / activePlatform.w;
+                                    state.currentFloorY = (activePlatform.y + activePlatform.h) - (activePlatform.h * progress);
+                                } else if (activePlatform.type === 'mega_ramp') {
+                                    const rampW = activePlatform.w;
+                                    const rampH = activePlatform.h;
+                                    const relativeX = playerX - activePlatform.x;
+                                    const safeW = Math.max(rampW, 1);
+                                    const safeH = Math.max(rampH, 1);
+                                    const xc = (safeW*safeW - safeH*safeH) / (2*safeW);
+                                    const R = safeW - xc;
+                                    const distFromCenterX = relativeX - xc;
+                                    const term = R*R - distFromCenterX*distFromCenterX;
+                                    if (term >= 0) {
+                                        state.currentFloorY = activePlatform.y + Math.sqrt(term);
+                                        const y_rel = Math.sqrt(term);
+                                        const x_rel_center = relativeX - xc;
+                                        const slope = -x_rel_center / y_rel; 
+                                        state.player.rotation = -Math.atan(slope);
+                                    } else {
+                                        const progress = Math.max(0, Math.min(1, relativeX / rampW));
+                                        state.currentFloorY = (activePlatform.y + activePlatform.h) - (activePlatform.h * progress);
+                                    }
+                                } else if (activePlatform.type === 'stairs_down') {
+                                    const progress = (playerX - activePlatform.x) / activePlatform.w;
+                                    state.currentFloorY = activePlatform.y + (activePlatform.h * progress);
+                                    if (Math.random() < 0.2 * dt && (state.player.state === 'RUNNING' || state.player.state === 'COASTING')) {
+                                        state.score += 10;
+                                        getSoundManager().playFirecracker();
+                                        if (!activePlatform.firecrackerTriggered) {
+                                            activePlatform.firecrackerTriggered = true;
+                                            addFloatingText(playerX, state.currentFloorY - 80, "Firecracker +100", "#ef4444");
+                                            state.score += 100;
+                                        }
+                                    }
+                                } else if (activePlatform.type === 'concrete_structure') {
+                                    const rampW = 100;
+                                    const relativeX = playerX - activePlatform.x;
+                                    if (relativeX < rampW) {
+                                        const progress = Math.max(0, relativeX / rampW);
+                                        state.currentFloorY = (activePlatform.y + activePlatform.h) - (activePlatform.h * progress);
+                                    } else {
+                                        state.currentFloorY = activePlatform.y;
+                                    }
+                                } else {
+                                    state.currentFloorY = activePlatform.y;
+                                }
+                                state.player.y = 0;
+                                state.player.vy = 0;
                             }
                         } else {
-                            // ON PLATFORM
-                            if (activePlatform.type === 'ramp' || activePlatform.type === 'ramp_up') {
-                                const progress = (playerX - activePlatform.x) / activePlatform.w;
-                                state.currentFloorY = (activePlatform.y + activePlatform.h) - (activePlatform.h * progress);
-                            } else if (activePlatform.type === 'mega_ramp') {
-                                const rampW = activePlatform.w;
-                                const rampH = activePlatform.h;
-                                const relativeX = playerX - activePlatform.x;
-                                const safeW = Math.max(rampW, 1);
-                                const safeH = Math.max(rampH, 1);
-                                const xc = (safeW*safeW - safeH*safeH) / (2*safeW);
-                                const R = safeW - xc;
-                                const distFromCenterX = relativeX - xc;
-                                const term = R*R - distFromCenterX*distFromCenterX;
-                                if (term >= 0) {
-                                     state.currentFloorY = activePlatform.y + Math.sqrt(term);
-                                     const y_rel = Math.sqrt(term);
-                                     const x_rel_center = relativeX - xc;
-                                     const slope = -x_rel_center / y_rel; 
-                                     state.player.rotation = -Math.atan(slope);
-                                } else {
-                                     const progress = Math.max(0, Math.min(1, relativeX / rampW));
-                                     state.currentFloorY = (activePlatform.y + activePlatform.h) - (activePlatform.h * progress);
-                                }
-                            } else if (activePlatform.type === 'stairs_down') {
-                                const progress = (playerX - activePlatform.x) / activePlatform.w;
-                                state.currentFloorY = activePlatform.y + (activePlatform.h * progress);
-                                if (Math.random() < 0.2 * dt && (state.player.state === 'RUNNING' || state.player.state === 'COASTING')) {
-                                    state.score += 10;
-                                    getSoundManager().playFirecracker();
-                                    if (!activePlatform.firecrackerTriggered) {
-                                        activePlatform.firecrackerTriggered = true;
-                                        addFloatingText(playerX, state.currentFloorY - 80, "Firecracker +100", "#ef4444");
-                                        state.score += 100;
-                                    }
-                                }
-                            } else if (activePlatform.type === 'concrete_structure') {
-                                 const rampW = 100;
-                                 const relativeX = playerX - activePlatform.x;
-                                 if (relativeX < rampW) {
-                                     const progress = Math.max(0, relativeX / rampW);
-                                     state.currentFloorY = (activePlatform.y + activePlatform.h) - (activePlatform.h * progress);
-                                 } else {
-                                     state.currentFloorY = activePlatform.y;
-                                 }
-                            } else {
-                                state.currentFloorY = activePlatform.y;
-                            }
-                            state.player.y = 0;
-                            state.player.vy = 0;
+                            state.player.platformId = null;
+                            if ((state.world as string) !== 'SPACE') state.currentFloorY = BASE_FLOOR_Y;
                         }
                     } else {
-                        state.player.platformId = null;
-                        if ((state.world as string) !== 'SPACE') state.currentFloorY = BASE_FLOOR_Y;
+                        if ((state.world as string) !== 'SPACE') {
+                            state.currentFloorY = BASE_FLOOR_Y;
+                        }
                     }
-                } else {
-                     if ((state.world as string) !== 'SPACE') {
-                          state.currentFloorY = BASE_FLOOR_Y;
-                     }
                 }
 
-                if (!state.player.platformId && state.player.state !== 'GRINDING' && state.player.state !== 'NATAS_SPIN' && state.player.state !== 'ARRESTED' && state.player.state !== 'ABDUCTED') {
+                if (!state.player.platformId && state.player.state !== 'GRINDING' && state.player.state !== 'NATAS_SPIN' && state.player.state !== 'ARRESTED' && state.player.state !== 'ABDUCTED' && !state.ufoLocked) {
                     const currentGravity = state.world === 'SPACE' ? GRAVITY * 0.5 : GRAVITY;
                     state.player.vy += currentGravity * dt;
                     state.player.y += state.player.vy * dt;
@@ -1399,9 +1336,8 @@ state.currentFloorY = canvas.height * 0.82;
                                   getSoundManager().playMetalHit();
                                   continue;
                              } else {
-                                  fallFromSpace();
-                                  requestRef.current = requestAnimationFrame(loop);
-                                  return;
+                                  handleCrash(); // CHANGED: Lose life on collision instead of just falling
+                                  continue;
                              }
                         }
                     }
