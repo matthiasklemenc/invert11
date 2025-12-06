@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { SkateSession } from './types';
-import MapDisplay from './MapDisplay';
+import SkateMap from '../maptiler/SkateMap';
 import SessionTimeline from './SessionTimeline';
 
 const formatDistance = (meters: number) => (meters / 1000).toFixed(2);
@@ -11,33 +12,33 @@ const formatTime = (seconds: number) => {
 };
 const formatSpeed = (mps: number) => (mps * 3.6).toFixed(1);
 
-const StatCard: React.FC<{ label: string; value: string; unit: string; }> = ({ label, value, unit }) => (
-    <div className="bg-neutral-800 p-4 rounded-lg text-center">
-        <div className="text-3xl font-bold text-white">{value}</div>
-        <div className="text-sm text-neutral-400">{label} <span className="text-xs">({unit})</span></div>
+const StatCard: React.FC<{ label: string; value: string; unit: string; color?: string }> = ({ label, value, unit, color="text-white" }) => (
+    <div className="bg-neutral-800 p-4 rounded-lg text-center border border-white/5">
+        <div className={`text-2xl font-bold ${color}`}>{value}</div>
+        <div className="text-xs text-neutral-400 uppercase">{label} <span className="opacity-50">({unit})</span></div>
     </div>
 );
 
-const HighlightIcon: React.FC<{ type: string }> = ({ type }) => {
-    let emoji = '⚡️';
-    if (type === 'AIRTIME') emoji = '✈️';
-    if (type === 'GRIND') emoji = '🔩';
-    if (type === 'CARVE') emoji = '🌊';
-    return <span className="text-lg mr-2">{emoji}</span>;
-};
+const HighlightRow: React.FC<{ label: string; count: number; icon: string }> = ({ label, count, icon }) => (
+    <div className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+        <div className="flex items-center gap-3">
+            <span className="text-xl">{icon}</span>
+            <span className="text-gray-300 font-medium">{label}</span>
+        </div>
+        <span className="font-mono font-bold text-white text-lg">{count}</span>
+    </div>
+);
 
 const SessionReviewPage: React.FC<{
     session: SkateSession;
     onClose: () => void;
 }> = ({ session, onClose }) => {
     
-    const totalDuration = (session.endTime - session.startTime) / 1000;
-    const avgSpeed = session.activeTime > 0 ? (session.totalDistance / session.activeTime) : 0;
-
-    const highlightCounts = session.highlights.reduce((acc, h) => {
-        acc[h.type] = (acc[h.type] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
+    // Calculate defaults if old session format
+    const timeOn = session.timeOnBoard ?? session.activeTime;
+    const timeOff = session.timeOffBoard ?? 0;
+    const avgSpeed = timeOn > 0 ? (session.totalDistance / timeOn) : 0;
+    const counts = session.counts || { pumps: 0, ollies: 0, airs: 0, fsGrinds: 0, bsGrinds: 0, stalls: 0, slams: 0 };
 
     return (
         <div className="min-h-screen bg-gray-900 text-white p-4">
@@ -46,48 +47,63 @@ const SessionReviewPage: React.FC<{
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                 </button>
                 <h1 className="text-lg font-bold text-gray-100 text-center w-full absolute left-1/2 -translate-x-1/2 pointer-events-none">
-                    Session: {new Date(session.startTime).toLocaleDateString()}
+                    Session Review
                 </h1>
             </header>
 
             <main className="max-w-4xl mx-auto space-y-6">
+                {/* Primary Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard label="Total Distance" value={formatDistance(session.totalDistance)} unit="km" />
                     <StatCard label="Top Speed" value={formatSpeed(session.topSpeed)} unit="km/h" />
                     <StatCard label="Avg. Speed" value={formatSpeed(avgSpeed)} unit="km/h" />
-                    <StatCard label="Active Time" value={formatTime(session.activeTime)} unit="m:s" />
+                    <StatCard label="Stance" value={session.stance || '-'} unit="" color="text-yellow-400" />
+                </div>
+
+                {/* Time Breakdown */}
+                <div className="bg-neutral-800 p-4 rounded-lg border border-white/5">
+                    <h3 className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-4">Time Analysis</h3>
+                    <div className="flex gap-4">
+                        <div className="flex-1 bg-neutral-900/50 p-3 rounded text-center">
+                            <div className="text-green-400 text-xl font-bold font-mono">{formatTime(timeOn)}</div>
+                            <div className="text-[10px] text-gray-400 uppercase mt-1">On Board (Skating)</div>
+                        </div>
+                        <div className="flex-1 bg-neutral-900/50 p-3 rounded text-center">
+                            <div className="text-yellow-400 text-xl font-bold font-mono">{formatTime(timeOff)}</div>
+                            <div className="text-[10px] text-gray-400 uppercase mt-1">Off Board (Chilling)</div>
+                        </div>
+                    </div>
                 </div>
                 
-                {session.path.length > 1 && (
-                     <div className="bg-neutral-800 p-2 rounded-lg">
-                        <MapDisplay path={session.path} />
+                {/* Map */}
+                {session.path.length > 1 ? (
+                     <div className="bg-neutral-800 p-2 rounded-lg border border-white/5">
+                        <SkateMap path={session.path} className="h-72 w-full rounded-lg" />
+                    </div>
+                ) : (
+                    <div className="bg-neutral-800 p-4 rounded-lg text-center text-gray-500">
+                        No GPS data available for map.
                     </div>
                 )}
 
-                <div className="bg-neutral-800 p-4 rounded-lg">
-                    <h3 className="text-md font-semibold mb-3">Session Timeline</h3>
-                    <SessionTimeline session={session} />
-                     <div className="flex justify-between text-xs text-neutral-400 mt-2">
-                        <span>Start</span>
-                        <span>{formatTime(totalDuration)}</span>
+                {/* Tricks Breakdown */}
+                <div className="bg-neutral-800 p-6 rounded-lg border border-white/5">
+                    <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Session Highlights</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+                        <HighlightRow label="Ollies" count={counts.ollies} icon="🛹" />
+                        <HighlightRow label="Airs / Jumps" count={counts.airs} icon="✈️" />
+                        <HighlightRow label="FS Grinds" count={counts.fsGrinds} icon="➡️" />
+                        <HighlightRow label="BS Grinds" count={counts.bsGrinds} icon="⬅️" />
+                        <HighlightRow label="50-50 / Stalls" count={counts.stalls} icon="⏸️" />
+                        <HighlightRow label="Pumps" count={counts.pumps} icon="🌊" />
+                        <HighlightRow label="Slams / Bails" count={counts.slams} icon="💥" />
                     </div>
                 </div>
 
-                <div className="bg-neutral-800 p-4 rounded-lg">
-                    <h3 className="text-md font-semibold mb-3">Session Highlights</h3>
-                    {session.highlights.length > 0 ? (
-                         <div className="space-y-2">
-                            {Object.entries(highlightCounts).map(([type, count]) => (
-                                <div key={type} className="flex items-center">
-                                    <HighlightIcon type={type} />
-                                    <span className="font-semibold">{type.charAt(0) + type.slice(1).toLowerCase()}:</span>
-                                    <span className="ml-2">{count} detected</span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-neutral-400">No special highlights were detected in this session.</p>
-                    )}
+                {/* Timeline */}
+                <div className="bg-neutral-800 p-4 rounded-lg border border-white/5">
+                    <h3 className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-3">Timeline</h3>
+                    <SessionTimeline session={session} />
                 </div>
             </main>
         </div>

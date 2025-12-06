@@ -1,16 +1,19 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { SkateSession, TrackerState, WorkerCommand, WorkerMessage, PositionUpdatePayload } from './types';
 import { workerString } from './tracker.worker';
 
 const initialState: TrackerState = {
     status: 'idle',
+    stance: 'REGULAR',
     startTime: null,
     totalDistance: 0,
-    activeTime: 0,
-    inactiveTime: 0,
+    duration: 0,
+    timeOnBoard: 0,
+    timeOffBoard: 0,
     currentSpeed: 0,
     topSpeed: 0,
-    isActivelySkating: false,
+    isRolling: false,
 };
 
 export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) => {
@@ -20,7 +23,6 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
     const watchIdRef = useRef<number | null>(null);
 
     useEffect(() => {
-        // Create worker from blob
         const blob = new Blob([workerString], { type: 'application/javascript' });
         const workerUrl = URL.createObjectURL(blob);
         const worker = new Worker(workerUrl);
@@ -41,9 +43,6 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
                     setError(payload.message);
                     setTrackerState(prev => ({ ...prev, status: 'error' }));
                     break;
-                case 'HIGHLIGHT':
-                    // In a more advanced implementation, you might want to show highlights live
-                    break;
             }
         };
 
@@ -59,14 +58,13 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
             navigator.geolocation.clearWatch(watchIdRef.current);
             watchIdRef.current = null;
         }
-        setTrackerState(initialState);
     }, []);
 
-    const startTracking = useCallback(async () => {
+    const startTracking = useCallback(async (stance: 'REGULAR' | 'GOOFY') => {
         setError(null);
-        setTrackerState({ ...initialState, status: 'tracking' });
+        setTrackerState({ ...initialState, stance, status: 'tracking' });
 
-        // Request DeviceMotionEvent permission for iOS 13+
+        // Request DevicePermission for iOS
         if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
             try {
                 const permissionState = await (DeviceMotionEvent as any).requestPermission();
@@ -77,14 +75,12 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
                 }
             } catch (err) {
                  setError('Motion sensor permission request failed.');
-                 setTrackerState(prev => ({...prev, status: 'error'}));
                  return;
             }
         }
         
-        workerRef.current?.postMessage({ type: 'START' } as WorkerCommand);
+        workerRef.current?.postMessage({ type: 'START', payload: { stance } } as WorkerCommand);
 
-        // Geolocation logic is now handled on the main thread
         watchIdRef.current = navigator.geolocation.watchPosition(
             (position) => {
                 const payload: PositionUpdatePayload = {
@@ -98,12 +94,11 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
                 workerRef.current?.postMessage({ type: 'POSITION_UPDATE', payload } as WorkerCommand);
             },
             (err) => {
-                // Send error to worker to be displayed, and stop tracking
                 const errorMessage = `GPS Error: ${err.message}`;
                 workerRef.current?.postMessage({ type: 'ERROR', payload: { message: errorMessage } });
                 stopTracking();
             },
-            { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+            { enableHighAccuracy: true, maximumAge: 1000, timeout: 2000 }
         );
 
     }, [stopTracking]);

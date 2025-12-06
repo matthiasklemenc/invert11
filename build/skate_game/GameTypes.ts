@@ -1,9 +1,19 @@
 
-import { ObstacleType, CharacterType } from './DrawingHelpers';
+// Removed import from DrawingHelpers to fix circular dependency
 
 export type GameState = 'MENU' | 'PLAYING' | 'GAME_OVER' | 'OXXO_SHOP';
 export type PlayerState = 'RUNNING' | 'COASTING' | 'JUMPING' | 'GRINDING' | 'CRASHED' | 'TUMBLING' | 'NATAS_SPIN' | 'ARRESTED' | 'ABDUCTED';
 export type WorldState = 'NORMAL' | 'TRANSITION_DOWN' | 'UNDERWORLD' | 'SPACE' | 'BEAM_DOWN';
+
+// Moved from DrawingHelpers.ts
+export type CharacterType = 'male_short' | 'male_cap' | 'female_long' | 'female_short' | 'alien';
+
+// Moved from DrawingHelpers.ts
+export type ObstacleType = 
+    | 'hydrant' | 'cone' | 'police_car' | 'cybertruck' | 'cart' 
+    | 'ledge' | 'curb' | 'bin' | 'grey_bin' | 'ramp' | 'gap' 
+    | 'ramp_up' | 'platform' | 'stairs_down' | 'rail' | 'flat_rail' | 'mega_ramp'
+    | 'concrete_structure' | 'space_platform' | 'alien_ship' | 'solar_panel' | 'station_girder' | 'big_ufo' | 'fireball';
 
 export interface Player {
     x: number;

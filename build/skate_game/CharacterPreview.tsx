@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
-import { drawStickman, CharacterType } from './DrawingHelpers';
+import { drawStickman } from './DrawingHelpers';
+import { CharacterType } from './GameTypes';
 
 type Props = {
     charId: CharacterType;
@@ -17,8 +18,6 @@ const CharacterPreview: React.FC<Props> = ({ charId, className }) => {
             ctx.clearRect(0, 0, 200, 300);
             
             // Draw stickman larger and centered
-            // The drawStickman function draws at a specific scale relative to 0,0
-            // We translate to center it in this canvas
             ctx.save();
             // Scale up slightly for the preview
             ctx.translate(100, 180); 

@@ -193,6 +193,28 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [pageBeforeDisclaimer, setPageBeforeDisclaimer] = useState<Page>('home');
 
+  // ---------- History Navigation ----------
+  useEffect(() => {
+    // Initialize history state on load so we can go back to home
+    if (!window.history.state) {
+      window.history.replaceState({ page: 'home' }, '', '');
+    }
+
+    const onPopState = (event: PopStateEvent) => {
+      const targetPage = event.state?.page || 'home';
+      setCurrentPage(targetPage);
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // Wrapper to sync React state with Browser History
+  const navigateTo = useCallback((page: Page) => {
+    setCurrentPage(page);
+    window.history.pushState({ page }, '', '');
+  }, []);
+
   const [playlist, setPlaylist] = useState<Song[]>([]);
   const [currentSongIndex, setCurrentSongIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -592,7 +614,7 @@ const App: React.FC = () => {
         sortOrder === 'random' ? unique.sort(() => 0.5 - Math.random()) : unique;
       setPlaylist(finalList);
       setCurrentSongIndex(0);
-      setCurrentPage('player');
+      navigateTo('player');
       setIsPlaying(true);
     } catch (err: any) {
       setError(err.message || 'An unknown error occurred.');
@@ -633,21 +655,21 @@ const App: React.FC = () => {
 
     setPlaylist([stationSong]);
     setCurrentSongIndex(0);
-    setCurrentPage('player');
+    navigateTo('player');
     setIsPlaying(true);
   };
 
   const handlePlayPlaylist = async (songs: Song[], startIndex = 0) => {
     if (songs.length === 0) {
       setError('This playlist is empty and cannot be played.');
-      setCurrentPage('home');
+      navigateTo('home');
       return;
     }
     const ok = await setupAudioEngine();
     if (!ok) return;
     setPlaylist(songs);
     setCurrentSongIndex(startIndex);
-    setCurrentPage('player');
+    navigateTo('player');
     setIsPlaying(true);
   };
 
@@ -670,7 +692,7 @@ const App: React.FC = () => {
     };
     setPlaylist([localSong]);
     setCurrentSongIndex(0);
-    setCurrentPage('player');
+    navigateTo('player');
     setIsPlaying(true);
   };
 
@@ -860,8 +882,8 @@ const App: React.FC = () => {
 
   const handleViewSession = useCallback((session: SkateSession) => {
     setReviewingSession(session);
-    setCurrentPage('session-review');
-  }, []);
+    navigateTo('session-review');
+  }, [navigateTo]);
 
   const handleAddSession = useCallback(
     (session: SkateSession) => {
@@ -929,11 +951,11 @@ const App: React.FC = () => {
 
   const handleShowDisclaimer = () => {
     setPageBeforeDisclaimer(currentPage);
-    setCurrentPage('disclaimer');
+    navigateTo('disclaimer');
   };
 
   const handleCloseDisclaimer = () => {
-    setCurrentPage(pageBeforeDisclaimer);
+    navigateTo(pageBeforeDisclaimer);
   };
 
   const onSaveEqPreset = (name: string) => {
@@ -966,7 +988,7 @@ const App: React.FC = () => {
           return (
             <HomePage
               onPlaySelectedGenres={handlePlaySelectedGenres}
-              onSetPage={setCurrentPage}
+              onSetPage={navigateTo}
               onLocalFileSelect={handleLocalFileSelect}
               isLoading={isLoading}
               error={error}
@@ -992,7 +1014,7 @@ const App: React.FC = () => {
         return (
           <PlayerPage
             song={currentSong}
-            onSetPage={setCurrentPage}
+            onSetPage={navigateTo}
             isPlaying={isPlaying}
             onPlayPause={handlePlayPause}
             onPrevSong={handlePrevSong}
@@ -1024,7 +1046,7 @@ const App: React.FC = () => {
       case 'my-music':
         return (
           <MyMusicPage
-            onSetPage={setCurrentPage}
+            onSetPage={navigateTo}
             favorites={favorites}
             playlists={playlists}
             onPlayPlaylist={handlePlayPlaylist}
@@ -1053,7 +1075,7 @@ const App: React.FC = () => {
       case 'editor':
         return (
           <VideoEditor
-            onClose={() => setCurrentPage('home')}
+            onClose={() => navigateTo('home')}
             recentClips={recentClips}
             onSetRecentClips={setRecentClips}
             videoVolume={videoVolume}
@@ -1063,46 +1085,46 @@ const App: React.FC = () => {
       case 'rollometer':
         return (
           <RollometerPage
-            onClose={() => setCurrentPage('home')}
+            onClose={() => navigateTo('home')}
             sessions={sessions}
             onAddSession={handleAddSession}
             onDeleteSession={handleDeleteSession}
             onViewSession={handleViewSession}
-            onSetPage={setCurrentPage}
+            onSetPage={navigateTo}
           />
         );
       case 'session-review':
         if (!reviewingSession)
           return (
             <RollometerPage
-              onClose={() => setCurrentPage('home')}
+              onClose={() => navigateTo('home')}
               sessions={sessions}
               onAddSession={handleAddSession}
               onDeleteSession={handleDeleteSession}
               onViewSession={handleViewSession}
-              onSetPage={setCurrentPage}
+              onSetPage={navigateTo}
             />
           );
         return (
           <SessionReviewPage
             session={reviewingSession}
-            onClose={() => setCurrentPage('rollometer')}
+            onClose={() => navigateTo('rollometer')}
           />
         );
       case 'skate-quiz':
-        return <SkateQuizPage onClose={() => setCurrentPage('rollometer')} />;
+        return <SkateQuizPage onClose={() => navigateTo('rollometer')} />;
       case 'general-quiz':
-        return <GeneralQuizPage onClose={() => setCurrentPage('rollometer')} />;
+        return <GeneralQuizPage onClose={() => navigateTo('rollometer')} />;
       case 'capitals-quiz': 
-        return <CapitalsQuizPage onClose={() => setCurrentPage('rollometer')} />;
+        return <CapitalsQuizPage onClose={() => navigateTo('rollometer')} />;
       case 'skate-game': // Add route
-        return <SkateGamePage onClose={() => setCurrentPage('rollometer')} />;
+        return <SkateGamePage onClose={() => navigateTo('rollometer')} />;
       case 'home':
       default:
         return (
           <HomePage
             onPlaySelectedGenres={handlePlaySelectedGenres}
-            onSetPage={setCurrentPage}
+            onSetPage={navigateTo}
             onLocalFileSelect={handleLocalFileSelect}
             isLoading={isLoading}
             error={error}
@@ -1144,7 +1166,7 @@ const App: React.FC = () => {
             song={currentSong}
             isPlaying={isPlaying}
             onPlayPause={handlePlayPause}
-            onSetPage={setCurrentPage}
+            onSetPage={navigateTo}
           />
         )}
 

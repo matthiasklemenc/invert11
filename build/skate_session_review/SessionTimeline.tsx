@@ -28,7 +28,7 @@ const SessionTimeline: React.FC<{ session: SkateSession }> = ({ session }) => {
             {session.highlights.map(h => {
                 const percent = ((h.timestamp - session.startTime) / 1000) / totalDuration * 100;
                 let color = 'white';
-                if (h.type === 'AIRTIME') color = 'cyan';
+                if (h.type === 'AIR') color = 'cyan';
                 if (h.type === 'IMPACT') color = 'yellow';
                 
                 return (

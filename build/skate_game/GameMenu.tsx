@@ -2,7 +2,8 @@
 import React from 'react';
 import Carousel3D from '../Carousel3D';
 import CharacterPreview from './CharacterPreview';
-import { CHARACTERS, CharacterType } from './DrawingHelpers';
+import { CHARACTERS } from './DrawingHelpers';
+import { CharacterType } from './GameTypes';
 import { formatScore, KAI_IMAGE_URL } from './GameConstants';
 
 interface GameMenuProps {

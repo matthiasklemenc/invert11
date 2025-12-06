@@ -1,5 +1,5 @@
 
-import { ObstacleType } from './DrawingHelpers';
+import { ObstacleType } from './GameTypes';
 
 export const KAI_IMAGE_URL = "https://images.unsplash.com/photo-1520045864941-8974ad6b2f0d?q=80&w=400&auto=format&fit=crop";
 export const GRAVITY = 0.6;
@@ -8,14 +8,12 @@ export const BASE_FLOOR_Y = 250;
 export const SPEED = 7;
 
 // --- KAI SPRITE ASSETS ---
-// REPLACE THESE URLS WITH YOUR PNG PATHS (e.g. "/assets/kai/ride_1.png")
-// ENSURE THE IMAGES ARE LOADED BEFORE THE GAME STARTS TO AVOID FLICKERING
 export const KAI_SPRITES = {
     RIDE: [new Image(), new Image(), new Image(), new Image()],
     PUSH: [new Image(), new Image()]
 };
 
-// Initialize placeholders (You will replace these sources)
+// Initialize placeholders 
 KAI_SPRITES.RIDE[0].src = "https://placehold.co/100x150/333/FFF/png?text=Ride+1";
 KAI_SPRITES.RIDE[1].src = "https://placehold.co/100x150/333/FFF/png?text=Ride+2";
 KAI_SPRITES.RIDE[2].src = "https://placehold.co/100x150/333/FFF/png?text=Ride+3";

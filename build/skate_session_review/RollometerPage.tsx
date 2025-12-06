@@ -5,6 +5,32 @@ import { useSkateTracker } from './useSkateTracker';
 import SkateboardIcon from './SkateboardIcon';
 import CalendarView from './CalendarView';
 
+// --- ICONS (Simple SVG) ---
+const QuestionMarkIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm11.378-3.917c-.89-.777-2.366-.777-3.255 0a.75.75 0 01-.988-1.129c1.454-1.272 3.776-1.272 5.23 0 1.513 1.324 1.513 3.518 0 4.842a3.75 3.75 0 01-.837.552c-.676.328-1.028.774-1.028 1.152v.202a.75.75 0 01-1.5 0v-.202c0-.944.606-1.657 1.336-2.008a2.25 2.25 0 00.5-.33c.505-.442.505-1.217 0-1.659zM12 17.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+    </svg>
+);
+
+const CityIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path fillRule="evenodd" d="M3 2.25a.75.75 0 00-.75.75v18a.75.75 0 00.75.75h18a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75h-1.5V9.75a.75.75 0 00-.75-.75h-3V5.25a.75.75 0 00-.75-.75H3zm3.75 6.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm0 3.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm0 3.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm6-6.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm0 3.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm0 3.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm6-6a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm0 3.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm0 3.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5z" clipRule="evenodd" />
+    </svg>
+);
+
+const DeleteIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" fill="#ef4444" className="group-hover:fill-red-500 transition-colors"/>
+        <path d="M15 9L9 15M9 9L15 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+);
+
+const ControllerIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path d="M19.75 4.5H4.25C2.455 4.5 1 5.955 1 7.75v8.5C1 18.045 2.455 19.5 4.25 19.5h15.5c1.795 0 3.25-1.455 3.25-3.25v-8.5c0-1.795-1.455-3.25-3.25-3.25zM6.25 9.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zm2 5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zm2-2.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zm-2-2.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zm10.5 5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zm2.5-2.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5z" />
+    </svg>
+);
+
 const formatDistance = (meters: number) => {
     if (meters < 1000) return `${meters.toFixed(0)} m`;
     return `${(meters / 1000).toFixed(2)} km`;
@@ -22,265 +48,210 @@ const formatSpeed = (mps: number) => {
     return `${kph.toFixed(1)} km/h`;
 };
 
-const StatCard: React.FC<{ label: string; value: string; className?: string }> = ({ label, value, className }) => (
-    <div className={`bg-neutral-800 p-3 rounded-lg text-center ${className}`}>
-        <div className="text-2xl font-bold text-white">{value}</div>
-        <div className="text-xs text-neutral-400 uppercase tracking-wider">{label}</div>
-    </div>
-);
-
-const DeleteIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" fill="#ef4444" className="group-hover:fill-red-500 transition-colors"/>
-        <path d="M15 9L9 15M9 9L15 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-);
-
-const isSameDay = (d1: Date, d2: Date) =>
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate();
-
 const RollometerPage: React.FC<{
     onClose: () => void;
     sessions: SkateSession[];
     onAddSession: (session: SkateSession) => void;
     onDeleteSession: (sessionId: string) => void;
     onViewSession: (session: SkateSession) => void;
-    onSetPage?: (page: any) => void; // Make optional for backward compatibility if needed, but should be passed
+    onSetPage: (page: any) => void;
 }> = ({ onClose, sessions, onAddSession, onDeleteSession, onViewSession, onSetPage }) => {
-
     const { trackerState, error, startTracking, stopTracking } = useSkateTracker(onAddSession);
-    const { status, totalDistance, activeTime, currentSpeed, topSpeed } = trackerState;
-    const isTracking = status === 'tracking';
-
+    const [stance, setStance] = useState<'REGULAR' | 'GOOFY'>('REGULAR');
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [displayMonth, setDisplayMonth] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
-    const [filterType, setFilterType] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('all');
-    const [viewMode, setViewMode] = useState<'menu' | 'tracker'>('menu');
-
-    const handleDateSelect = (date: Date) => {
-        setSelectedDate(date);
-        setDisplayMonth(new Date(date.getFullYear(), date.getMonth(), 1));
-        setFilterType('day');
-    };
+    const [displayMonth, setDisplayMonth] = useState(new Date());
 
     const filteredSessions = useMemo(() => {
-        const sortedSessions = [...sessions].sort((a, b) => b.startTime - a.startTime);
-        if (filterType === 'all') {
-            return sortedSessions;
-        }
+        return sessions.filter(s => 
+            new Date(s.startTime).toDateString() === selectedDate.toDateString()
+        ).sort((a, b) => b.startTime - a.startTime);
+    }, [sessions, selectedDate]);
 
-        const selectedYear = selectedDate.getFullYear();
-        const selectedMonth = selectedDate.getMonth();
-        const selectedDay = selectedDate.getDate();
-
-        switch (filterType) {
-            case 'day':
-                return sortedSessions.filter(s => isSameDay(new Date(s.startTime), selectedDate));
-            case 'week': {
-                const startOfWeek = new Date(selectedYear, selectedMonth, selectedDay - selectedDate.getDay());
-                startOfWeek.setHours(0, 0, 0, 0);
-                const endOfWeek = new Date(startOfWeek);
-                endOfWeek.setDate(endOfWeek.getDate() + 7);
-                return sortedSessions.filter(s => s.startTime >= startOfWeek.getTime() && s.startTime < endOfWeek.getTime());
-            }
-            case 'month':
-                return sortedSessions.filter(s => {
-                    const sessionDate = new Date(s.startTime);
-                    return sessionDate.getFullYear() === selectedYear && sessionDate.getMonth() === selectedMonth;
-                });
-            case 'year':
-                 return sortedSessions.filter(s => new Date(s.startTime).getFullYear() === selectedYear);
-            default:
-                return sortedSessions;
-        }
-    }, [sessions, selectedDate, filterType]);
-
-    const handleStart = async () => {
-        try {
-            const result = await navigator.permissions.query({ name: 'geolocation' });
-            if (result.state === 'denied') {
-                alert("Geolocation permission is denied. Please enable it in your browser settings to use the Rollometer.");
-                return;
-            }
-            startTracking();
-        } catch (e) {
-            console.error(e);
-            alert("Could not request permissions. Your browser may not support this feature.");
-        }
-    };
-    
-    const handleDelete = (e: React.MouseEvent, sessionId: string) => {
-        e.stopPropagation();
-        onDeleteSession(sessionId);
-    };
-
-    const FilterButton: React.FC<{ type: typeof filterType; label: string }> = ({ type, label }) => (
-        <button
-            onClick={() => setFilterType(type)}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                filterType === type ? 'bg-red-600 text-white' : 'bg-neutral-700 hover:bg-neutral-600'
-            }`}
-        >
-            {label}
-        </button>
-    );
-
-    if (viewMode === 'menu') {
-        return (
-            <div className="min-h-screen bg-gray-900 text-white p-4 flex flex-col">
-                <header className="flex items-center justify-between mb-6 relative h-10">
-                    <button onClick={onClose} className="text-white hover:text-gray-300 transition-colors z-10 p-2 -ml-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                    </button>
-                    <h1 className="text-xl font-bold tracking-wider text-gray-100 text-center w-full absolute left-1/2 -translate-x-1/2 pointer-events-none">INVERT TOOLS</h1>
-                </header>
-                
-                <div className="flex-grow flex flex-col justify-center gap-4 max-w-sm mx-auto w-full">
-                    <button 
-                        onClick={() => onSetPage && onSetPage('skate-game')}
-                        className="bg-neutral-800 hover:bg-neutral-700 p-6 rounded-2xl flex flex-col items-center gap-3 transition-all transform hover:scale-105 border border-neutral-700 hover:border-yellow-500 group"
-                    >
-                        <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center group-hover:shadow-[0_0_15px_rgba(234,179,8,0.5)] transition-shadow">
-                             <SkateboardIcon className="w-8 h-8 text-white" />
-                        </div>
-                        <span className="text-xl font-bold">INVERT-The Game</span>
-                        <span className="text-xs text-gray-400">Skate or wear a tie</span>
-                    </button>
-
-                    <button 
-                        onClick={() => setViewMode('tracker')}
-                        className="bg-neutral-800 hover:bg-neutral-700 p-6 rounded-2xl flex flex-col items-center gap-3 transition-all transform hover:scale-105 border border-neutral-700 hover:border-red-500 group"
-                    >
-                        <div className="w-16 h-16 rounded-full bg-[#c52323] flex items-center justify-center group-hover:shadow-[0_0_15px_rgba(197,35,35,0.5)] transition-shadow">
-                             <SkateboardIcon className="w-8 h-8 text-white" />
-                        </div>
-                        <span className="text-xl font-bold">Session Tracker</span>
-                        <span className="text-xs text-gray-400">Track speed & distance</span>
-                    </button>
-
-                    <button 
-                        onClick={() => onSetPage && onSetPage('skate-quiz')}
-                        className="bg-neutral-800 hover:bg-neutral-700 p-6 rounded-2xl flex flex-col items-center gap-3 transition-all transform hover:scale-105 border border-neutral-700 hover:border-red-500 group"
-                    >
-                        <div className="w-16 h-16 rounded-full bg-[#c52323] flex items-center justify-center group-hover:shadow-[0_0_15px_rgba(197,35,35,0.5)] transition-shadow">
-                             <span className="text-2xl font-bold">?</span>
-                        </div>
-                        <span className="text-xl font-bold">Skate Quiz</span>
-                        <span className="text-xs text-gray-400">Test your skate knowledge</span>
-                    </button>
-
-                    <button 
-                        onClick={() => onSetPage && onSetPage('general-quiz')}
-                        className="bg-neutral-800 hover:bg-neutral-700 p-6 rounded-2xl flex flex-col items-center gap-3 transition-all transform hover:scale-105 border border-neutral-700 hover:border-blue-500 group"
-                    >
-                        <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center group-hover:shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-shadow">
-                             <span className="text-2xl font-bold">G</span>
-                        </div>
-                        <span className="text-xl font-bold">General Quiz</span>
-                        <span className="text-xs text-gray-400">Test your general knowledge</span>
-                    </button>
-
-                    <button 
-                        onClick={() => onSetPage && onSetPage('capitals-quiz')}
-                        className="bg-neutral-800 hover:bg-neutral-700 p-6 rounded-2xl flex flex-col items-center gap-3 transition-all transform hover:scale-105 border border-neutral-700 hover:border-teal-500 group"
-                    >
-                        <div className="w-16 h-16 rounded-full bg-teal-500 flex items-center justify-center group-hover:shadow-[0_0_15px_rgba(20,184,166,0.5)] transition-shadow">
-                             <span className="text-2xl font-bold">C</span>
-                        </div>
-                        <span className="text-xl font-bold">Capitals Quiz</span>
-                        <span className="text-xs text-gray-400">Explore the world</span>
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    const isTracking = trackerState.status === 'tracking';
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-4">
+        <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 flex flex-col">
+            {/* Header */}
             <header className="flex items-center justify-between mb-6 relative h-10">
-                <button onClick={() => isTracking ? stopTracking() : setViewMode('menu')} className="text-white hover:text-gray-300 transition-colors z-10 p-2 -ml-2">
+                <button onClick={onClose} className="text-white hover:text-gray-300 transition-colors z-10 p-2 -ml-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                 </button>
-                <h1 className="text-xl font-bold tracking-wider text-gray-100 text-center w-full absolute left-1/2 -translate-x-1/2 pointer-events-none">Sessions</h1>
+                <h1 className="text-xl font-bold tracking-wider text-gray-100 text-center w-full absolute left-1/2 -translate-x-1/2 pointer-events-none">
+                    INVERT TOOLS
+                </h1>
             </header>
 
-            <main className="max-w-2xl mx-auto">
-                <div className="bg-neutral-800/50 rounded-xl p-6 mb-8 text-center">
-                    {error && <p className="text-red-400 mb-4">{error}</p>}
-                    {isTracking ? (
-                        <>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                                <StatCard label="Distance" value={formatDistance(totalDistance)} />
-                                <StatCard label="Active Time" value={formatTime(activeTime)} />
-                                <StatCard label="Top Speed" value={formatSpeed(topSpeed)} />
-                                <StatCard label="Current Speed" value={formatSpeed(currentSpeed)} />
-                            </div>
-                            <button onClick={stopTracking} className="w-full max-w-xs px-6 py-4 rounded-lg bg-red-600 text-white font-bold text-lg transition hover:bg-red-700">
-                                End Session
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="w-24 h-24 rounded-full bg-[#c52323] flex items-center justify-center mx-auto mb-4">
-                               <SkateboardIcon className="w-12 h-12 text-white" />
-                            </div>
-                             <h2 className="text-2xl font-semibold mb-2">Track Your Session</h2>
-                            <p className="text-neutral-400 mb-6">Start the Rollometer to log your distance, speed, and highlights.</p>
-                            <button onClick={handleStart} className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c52323] text-white font-bold text-lg transition hover:bg-red-500">
-                                Start Session
-                            </button>
-                        </>
-                    )}
-                </div>
+            <main className="w-full max-w-4xl mx-auto space-y-8">
+                
+                {/* --- QUIZ & GAME GRID --- */}
+                <section>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button 
+                            onClick={() => onSetPage('skate-game')}
+                            className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-neutral-700 transition-colors group h-32"
+                        >
+                            <ControllerIcon className="w-10 h-10 text-yellow-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-bold text-sm tracking-wide">SKATE GAME</span>
+                        </button>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4">Session History</h2>
-                    
-                    <CalendarView
+                        <button 
+                            onClick={() => onSetPage('skate-quiz')}
+                            className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-neutral-700 transition-colors group h-32"
+                        >
+                            <SkateboardIcon className="w-10 h-10 text-[#c52323] group-hover:scale-110 transition-transform" />
+                            <span className="font-bold text-sm tracking-wide">SKATE QUIZ</span>
+                        </button>
+                        
+                        <button 
+                            onClick={() => onSetPage('general-quiz')}
+                            className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-neutral-700 transition-colors group h-32"
+                        >
+                            <QuestionMarkIcon className="w-10 h-10 text-blue-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-bold text-sm tracking-wide">GENERAL QUIZ</span>
+                        </button>
+
+                        <button 
+                            onClick={() => onSetPage('capitals-quiz')}
+                            className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-neutral-700 transition-colors group h-32"
+                        >
+                            <CityIcon className="w-10 h-10 text-teal-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-bold text-sm tracking-wide">CAPITALS QUIZ</span>
+                        </button>
+                    </div>
+                </section>
+
+                <div className="border-t border-white/10 my-8"></div>
+
+                {/* --- ROLLOMETER --- */}
+                <section>
+                    <h2 className="text-lg font-bold text-gray-100 mb-4 flex items-center gap-2">
+                        <span className="w-2 h-8 bg-[#c52323] rounded-full block"></span>
+                        SESSION TRACKER
+                    </h2>
+
+                    <div className="bg-neutral-800 rounded-xl p-6 shadow-xl border border-white/5 mb-6">
+                        {!isTracking ? (
+                            <div className="text-center">
+                                <h2 className="text-3xl font-black text-white mb-2">START SESSION</h2>
+                                <p className="text-gray-400 mb-6 text-sm">Choose your stance to begin tracking.</p>
+                                
+                                <div className="flex justify-center gap-4 mb-8">
+                                    <button 
+                                        onClick={() => setStance('REGULAR')}
+                                        className={`px-6 py-3 rounded-lg font-bold transition-all border-2 ${stance === 'REGULAR' ? 'bg-white text-black border-white' : 'bg-transparent text-gray-400 border-gray-600 hover:border-gray-400'}`}
+                                    >
+                                        REGULAR
+                                    </button>
+                                    <button 
+                                        onClick={() => setStance('GOOFY')}
+                                        className={`px-6 py-3 rounded-lg font-bold transition-all border-2 ${stance === 'GOOFY' ? 'bg-white text-black border-white' : 'bg-transparent text-gray-400 border-gray-600 hover:border-gray-400'}`}
+                                    >
+                                        GOOFY
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={() => startTracking(stance)}
+                                    className="w-full max-w-sm bg-[#c52323] hover:bg-[#a91f1f] text-white font-black py-4 px-8 rounded-full text-xl shadow-lg transition-transform transform active:scale-95"
+                                >
+                                    GO SKATE
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center">
+                                <div className="animate-pulse mb-6 flex flex-col items-center">
+                                    <div className="text-[#c52323] font-black text-4xl tracking-widest">RECORDING</div>
+                                    <div className="text-white/50 text-xs mt-1 tracking-widest uppercase">
+                                        {trackerState.isRolling ? "STATUS: SKATING" : "STATUS: CHILLING"}
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4 mb-8">
+                                    <div className="bg-neutral-900/50 p-4 rounded-lg">
+                                        <div className="text-3xl font-mono font-bold">{formatDistance(trackerState.totalDistance)}</div>
+                                        <div className="text-xs text-gray-500 font-bold uppercase">Distance</div>
+                                    </div>
+                                    <div className="bg-neutral-900/50 p-4 rounded-lg">
+                                        <div className="text-3xl font-mono font-bold">{formatTime(trackerState.duration)}</div>
+                                        <div className="text-xs text-gray-500 font-bold uppercase">Duration</div>
+                                    </div>
+                                    <div className="bg-neutral-900/50 p-4 rounded-lg">
+                                        <div className="text-3xl font-mono font-bold text-green-400">{formatTime(trackerState.timeOnBoard)}</div>
+                                        <div className="text-xs text-gray-500 font-bold uppercase">On Board</div>
+                                    </div>
+                                    <div className="bg-neutral-900/50 p-4 rounded-lg">
+                                        <div className="text-3xl font-mono font-bold text-yellow-400">{formatTime(trackerState.timeOffBoard)}</div>
+                                        <div className="text-xs text-gray-500 font-bold uppercase">Off Board</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="mb-6 grid grid-cols-3 gap-2 text-xs font-mono text-gray-400">
+                                     <div>Speed: {formatSpeed(trackerState.currentSpeed)}</div>
+                                     <div>Max: {formatSpeed(trackerState.topSpeed)}</div>
+                                     {trackerState.debugMessage && <div>{trackerState.debugMessage}</div>}
+                                </div>
+
+                                <button
+                                    onClick={stopTracking}
+                                    className="w-full max-w-sm bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg transition-colors"
+                                >
+                                    STOP SESSION
+                                </button>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="mt-4 p-3 bg-red-900/50 border border-red-500/30 text-red-200 text-sm rounded text-center">
+                                {error}
+                            </div>
+                        )}
+                    </div>
+
+                    <CalendarView 
                         sessions={sessions}
                         selectedDate={selectedDate}
-                        onDateSelect={handleDateSelect}
+                        onDateSelect={setSelectedDate}
                         currentDisplayMonth={displayMonth}
                         onDisplayMonthChange={setDisplayMonth}
                     />
 
-                    <div className="flex justify-center flex-wrap gap-2 my-4">
-                        <FilterButton type="day" label="Day" />
-                        <FilterButton type="week" label="Week" />
-                        <FilterButton type="month" label="Month" />
-                        <FilterButton type="year" label="Year" />
-                        <FilterButton type="all" label="All" />
-                    </div>
-
-                    {filteredSessions.length === 0 ? (
-                        <p className="text-neutral-500 text-center py-8">No sessions found for this period.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {filteredSessions.map(session => (
-                                <div key={session.id} className="group flex items-center bg-neutral-800 rounded-lg hover:bg-neutral-700 transition-colors">
-                                    <button onClick={() => onViewSession(session)} className="flex-grow text-left p-4 min-w-0">
-                                        <div className="flex justify-between items-center gap-4">
-                                            <p className="font-semibold truncate">{new Date(session.startTime).toLocaleString()}</p>
-                                            <p className="text-lg font-bold shrink-0">{formatDistance(session.totalDistance)}</p> 
+                    <div className="space-y-3 mt-6">
+                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">
+                            Sessions on {selectedDate.toLocaleDateString()}
+                        </h3>
+                        
+                        {filteredSessions.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500 bg-neutral-800 rounded-lg border border-white/5">
+                                No sessions recorded this day.
+                            </div>
+                        ) : (
+                            filteredSessions.map(session => (
+                                <div key={session.id} className="bg-neutral-800 rounded-lg p-4 flex items-center justify-between group hover:bg-neutral-750 transition-colors border border-white/5">
+                                    <div className="flex-grow cursor-pointer" onClick={() => onViewSession(session)}>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <span className="text-lg font-bold text-white">
+                                                {new Date(session.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </span>
+                                            <span className="text-xs bg-[#c52323] px-2 py-0.5 rounded text-white font-bold">
+                                                {formatDistance(session.totalDistance)}
+                                            </span>
                                         </div>
-                                        <div className="text-xs text-neutral-400 mt-1">
-                                            Duration: {formatTime((session.endTime - session.startTime) / 1000)}
+                                        <div className="text-xs text-gray-400 flex gap-3">
+                                            <span>⏱ {formatTime(session.activeTime)}</span>
+                                            <span>🚀 {formatSpeed(session.topSpeed)}</span>
                                         </div>
-                                    </button>
+                                    </div>
                                     <button 
-                                        onClick={(e) => handleDelete(e, session.id)} 
-                                        className="px-4 py-2 text-neutral-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        aria-label="Delete session"
+                                        onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id); }}
+                                        className="p-2 text-gray-600 hover:bg-red-900/20 rounded-full transition-colors group"
                                     >
                                         <DeleteIcon />
                                     </button>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                            ))
+                        )}
+                    </div>
+                </section>
             </main>
         </div>
     );
