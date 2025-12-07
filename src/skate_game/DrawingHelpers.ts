@@ -531,59 +531,45 @@ export function drawStickman(
         ctx.rotate(safeFrame * 0.05); 
     }
 
-// --- KAI (male_cap) SPRITE RENDERER ---
-if (type === 'male_cap') {
+    if (type === 'male_cap') {
+        if (isFakie) {
+            ctx.scale(-1, 1);
+        }
 
-    ctx.save();
+        if (state === 'NATAS_SPIN') {
+             const widthScale = Math.cos(trickRotation);
+             ctx.scale(widthScale, 1);
+        } else if (trickType === '180' || trickType === '360') {
+             const widthScale = Math.cos(trickRotation);
+             ctx.scale(widthScale, 1);
+        } else if (state === 'TUMBLING' || state === 'JUMPING' || state === 'GRINDING' || trickType !== '') {
+             ctx.rotate(trickRotation);
+        }
+        
+        let imageToDraw: HTMLImageElement | null = null;
 
-    // Flip if fakie
-    if (isFakie) ctx.scale(-1, 1);
+        if (state === 'RUNNING') {
+            const pushFrameIndex = Math.floor(safeFrame / 15) % 2; 
+            imageToDraw = KAI_SPRITES.PUSH[pushFrameIndex];
+        } else {
+            const rideFrameIndex = Math.floor(safeFrame / 10) % 4;
+            imageToDraw = KAI_SPRITES.RIDE[rideFrameIndex];
+        }
 
-    const safeFrame = frame || 0;
-    let imageToDraw: HTMLImageElement | null = null;
+        const drawW = 50; 
+        const drawH = 75; 
+        
+        if (imageToDraw && imageToDraw.complete) {
+             ctx.drawImage(imageToDraw, -drawW/2, -drawH + 25, drawW, drawH);
+        } else {
+            ctx.fillStyle = '#c52323';
+            ctx.font = '10px Arial';
+            ctx.fillText("Loading...", -20, -20);
+        }
 
-    // --- ROTATION AND SPECIAL TRICKS ---
-    if (state === 'NATAS_SPIN') {
-        ctx.scale(Math.cos(trickRotation), 1);
-    } else if (trickType === '180' || trickType === '360') {
-        ctx.scale(Math.cos(trickRotation), 1);
-    } else if (
-        state === 'TUMBLING' ||
-        state === 'JUMPING' ||
-        state === 'GRINDING' ||
-        trickType !== ''
-    ) {
-        ctx.rotate(trickRotation);
+        ctx.restore();
+        return; 
     }
-
-    // --- SELECT SPRITE ---
-    if (state === 'RUNNING') {
-        // PUSH animation (2 frames)
-        const pushFrameIndex = Math.floor(safeFrame / 15) % 2;
-        imageToDraw = KAI_SPRITES.PUSH[pushFrameIndex];
-    } else {
-        // RIDE animation (4 frames)
-        const rideFrameIndex = Math.floor(safeFrame / 10) % 4;
-        imageToDraw = KAI_SPRITES.RIDE[rideFrameIndex];
-    }
-
-    // --- DRAW SPRITE ---
-    const drawW = 75;
-    const drawH = 110;
-
-    if (imageToDraw && imageToDraw.complete) {
-        ctx.drawImage(imageToDraw, -drawW / 2, -drawH + 20, drawW, drawH);
-    } else {
-        // fallback while loading
-        ctx.fillStyle = '#c52323';
-        ctx.font = '10px Arial';
-        ctx.fillText("Loading...", -20, -20);
-    }
-
-    ctx.restore();
-    return;
-}
-
 
     if (isFakie) {
         ctx.scale(-1, 1);
