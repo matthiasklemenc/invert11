@@ -60,6 +60,18 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
         };
     }, [onSessionEnd]);
 
+}, [onSessionEnd]);  // <-- end of first useEffect
+
+// DEBUG: verify devicemotion is firing on the phone
+useEffect(() => {
+    function debugMotion(e: DeviceMotionEvent) {
+        console.log("ACC:", e.accelerationIncludingGravity);
+    }
+    window.addEventListener("devicemotion", debugMotion);
+    return () => window.removeEventListener("devicemotion", debugMotion);
+}, []);
+
+
     // Forward devicemotion events from MAIN THREAD to the worker
     useEffect(() => {
         function handleMotion(e: DeviceMotionEvent) {
