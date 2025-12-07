@@ -195,7 +195,7 @@ const HomePage: React.FC<{
                     className="inline-flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity"
                     aria-label="Music provided by Jamendo"
                   >
-                    <img src="/jamendo-logo.png" alt="Jamendo Music" className="h-8 md:h-9" />
+                    <img src="./jamendo-logo.png" alt="Jamendo Music" className="h-8 md:h-9" />
                   </a>
                 </div>
               </div>
