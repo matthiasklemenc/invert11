@@ -11,13 +11,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>INVERT FM - Music Player</title>
 
+    <!-- DEVELOPMENT CSS (Vite will replace this automatically in /docs/) -->
     <link rel="stylesheet" href="./index.css" />
+
+    <!-- Icons + Manifest -->
     <link rel="icon" type="image/png" href="./icons/icon-512.png" />
     <link rel="apple-touch-icon" href="./icons/icon-512.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="theme-color" content="#4f46e5" />
 
-    <!-- Fonts -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
@@ -26,6 +29,7 @@
     <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
+    <!-- UI smoothness + custom scrollbars -->
     <style>
       body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
       ::-webkit-scrollbar { width: 8px; }
@@ -38,22 +42,8 @@
   <body class="bg-gray-900">
     <div id="root"></div>
 
-    <!-- Vite dev entry (build will replace this with the hashed bundle in docs/index.html) -->
+    <!-- IMPORTANT: DEVELOPMENT ENTRY ONLY -->
+    <!-- Vite will replace this with hashed JS in docs/index.html -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
-``` :contentReference[oaicite:0]{index=0}
-
-### What this means
-
-- **This file is fine.** We don’t touch the CSS name here.
-- Vite uses this as the **template** and, on `npm run build`, generates:
-  - `docs/index.html`
-  - `docs/assets/index-XXXXX.css`
-  - `docs/assets/index-XXXXX.js`
-
-In `docs/index.html`, Vite will automatically inject the correct:
-
-```html
-<link rel="stylesheet" href="./assets/index-XXXXX.css">
-<script type="module" src="./assets/index-XXXXX.js"></script>
