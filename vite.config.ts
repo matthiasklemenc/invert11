@@ -1,4 +1,3 @@
-
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -10,8 +9,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
 
   return {
-    // CRITICAL FIX: Use relative paths so the app works on ANY domain or subfolder (localhost, mobile IP, etc.)
-    base: './',
+    // FIX FOR GITHUB PAGES: MUST MATCH YOUR REPO NAME
+    base: '/invert11/',
 
     build: {
       outDir: 'docs',
