@@ -11,23 +11,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>INVERT FM - Music Player</title>
 
-    <!-- DEVELOPMENT CSS (Vite will replace this automatically in /docs/) -->
-    <link rel="stylesheet" href="/invert11/index.css" />
-
-
     <!-- Icons + Manifest -->
     <link rel="icon" type="image/png" href="./icons/icon-512.png" />
     <link rel="apple-touch-icon" href="./icons/icon-512.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <meta name="theme-color" content="#4f46e5" />
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CDN: this powers all the className styling in your app -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- MapLibre CSS + JS -->
-    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <link
+      href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
     <!-- UI smoothness + custom scrollbars -->
@@ -43,8 +47,7 @@
   <body class="bg-gray-900">
     <div id="root"></div>
 
-    <!-- IMPORTANT: DEVELOPMENT ENTRY ONLY -->
-    <!-- Vite will replace this with hashed JS in docs/index.html -->
+    <!-- Dev entry. In the build, Vite replaces this with the hashed JS in docs/index.html -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
