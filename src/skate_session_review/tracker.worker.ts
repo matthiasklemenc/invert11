@@ -1,4 +1,3 @@
-
 // This file is not imported directly. Its content is imported as a string in useSkateTracker.ts
 // and used to create a worker blob.
 
@@ -43,7 +42,7 @@ const ROLLING_VIBRATION_MAX = 0.5;  // Too much variance = walking steps
 const WALK_STEP_THRESHOLD = 0.8;    // Rhythmic spikes
 const FREEFALL_THRESHOLD = 0.3;     // G-force near 0
 const IMPACT_THRESHOLD = 2.5;       // Landing G-force
-const SLAM_THRESHOLD = 5.0;         // Slam/Bail (Lowered to catch controlled bails)
+const SLAM_THRESHOLD = 5.0;         // Slam/Bail
 const ROTATION_THRESHOLD = 2.0;     // rad/s for turns
 
 // Detection State Machines
@@ -84,22 +83,16 @@ function handlePositionUpdate(position) {
     lastPosition = currentPosition;
 }
 
-function handleDeviceMotion(event) {
-    const now = Date.now();
-    
-    // Acceleration (Gravity included for orientation, excluded for movement? 
-    // We usually want IncludingGravity for orientation/pumping, 
-    // and rotationRate for spins)
-    const acc = event.accelerationIncludingGravity;
-    const rot = event.rotationRate;
+// Called with payload from main thread (not DeviceMotionEvent directly)
+function handleDeviceMotion(payload) {
+    const { acc, rot, timestamp } = payload;
+    if (!acc || !rot) return;
 
-    if (acc && rot) {
-        accelBuffer.push({ x: acc.x, y: acc.y, z: acc.z, timestamp: now });
-        gyroBuffer.push({ alpha: rot.alpha, beta: rot.beta, gamma: rot.gamma, timestamp: now });
-        
-        if (accelBuffer.length > BUFFER_SIZE) accelBuffer.shift();
-        if (gyroBuffer.length > BUFFER_SIZE) gyroBuffer.shift();
-    }
+    accelBuffer.push({ x: acc.x, y: acc.y, z: acc.z, timestamp });
+    gyroBuffer.push({ alpha: rot.alpha, beta: rot.beta, gamma: rot.gamma, timestamp });
+
+    if (accelBuffer.length > BUFFER_SIZE) accelBuffer.shift();
+    if (gyroBuffer.length > BUFFER_SIZE) gyroBuffer.shift();
 }
 
 function classifyActivity(speed, stdDevAccel) {
@@ -112,7 +105,7 @@ function classifyActivity(speed, stdDevAccel) {
     
     if (speed < 0.5 && stdDevAccel < 0.1) return false; // Standing still
     
-    // Walking typically creates rhythmic spikes > 0.8G variance
+    // Walking typically creates rhythmic spikes > 0.6G variance
     if (stdDevAccel > 0.6) return false; // Walking / Running with phone
     
     // Skating usually implies smooth motion with specific texture vibration
@@ -122,13 +115,13 @@ function classifyActivity(speed, stdDevAccel) {
 }
 
 function detectTricks(currentSpeed) {
-    if (accelBuffer.length < 5) return;
+    if (accelBuffer.length < 5 || gyroBuffer.length < 1) return;
 
     const lastAcc = accelBuffer[accelBuffer.length - 1];
     const lastGyro = gyroBuffer[gyroBuffer.length - 1];
     
     // Magnitude of G-Force (1.0 = normal gravity)
-    const gForce = Math.sqrt(lastAcc.x**2 + lastAcc.y**2 + lastAcc.z**2) / 9.81;
+    const gForce = Math.sqrt(lastAcc.x*lastAcc.x + lastAcc.y*lastAcc.y + lastAcc.z*lastAcc.z) / 9.81;
     
     // --- 1. AIR / OLLIE / SLAM DETECTION ---
     if (gForce < FREEFALL_THRESHOLD) {
@@ -159,19 +152,15 @@ function detectTricks(currentSpeed) {
     }
 
     // --- 2. PUMP DETECTION ---
-    // Pumping creates a wave of G-force (> 1.5G) without sharp impact shock
-    // This is hard to perfect, simplified version:
+    // Pumping creates a wave of G-force (> 1.3G) without sharp impact shock
     if (gForce > 1.3 && gForce < 2.0 && freefallStart === 0 && isRolling) {
-        // Debounce simple pump counter
-        // (In real app, we'd look for the sine wave shape)
-        // counts.pumps++; // Too noisy to enable without complex filter
+        // Potential pump detection (disabled by default to avoid noise)
+        // counts.pumps++;
     }
 
     // --- 3. GRIND / STALL DETECTION ---
     // Entry Rotation -> Stability -> Exit Rotation
     if (lastGyro && Math.abs(lastGyro.alpha) > 200) { // Fast rotation
-        // Storing rotation direction for classification
-        // Alpha: + is CCW (Left), - is CW (Right) usually
         entryRotation = lastGyro.alpha; 
         potentialGrindStart = lastAcc.timestamp;
     } 
@@ -182,9 +171,6 @@ function detectTricks(currentSpeed) {
         
         // Stable period?
         if (timeSinceRot > 100 && Math.abs(lastGyro.alpha) < 50) {
-            // We are "locked in"
-            // To confirm grind, we need to exit it or hold it. 
-            // Simplified: If we hold stability for > 200ms after a rotation, classify it.
             if (timeSinceRot > 200) {
                 classifyGrind(entryRotation, timeSinceRot/1000);
                 potentialGrindStart = 0; // Reset
@@ -197,9 +183,6 @@ function detectTricks(currentSpeed) {
 
 function classifyGrind(rotAlpha, duration) {
     // Determine FS vs BS
-    // Regular (Left Fwd): Turn Left (CCW/+) = Frontside. Turn Right (CW/-) = Backside.
-    // Goofy (Right Fwd): Turn Right (CW/-) = Frontside. Turn Left (CCW/+) = Backside.
-    
     let isFrontside = false;
     
     if (userStance === 'REGULAR') {
@@ -210,7 +193,6 @@ function classifyGrind(rotAlpha, duration) {
 
     const type = isFrontside ? 'FS_GRIND' : 'BS_GRIND';
     
-    // If speed is very low, it's a stall (like 50/50 stall)
     const currentSpeed = lastPosition?.speed || 0;
     if (currentSpeed < 1.0) {
         addHighlight('STALL', Date.now(), duration, 0);
@@ -227,7 +209,7 @@ function addHighlight(type, timestamp, duration, value) {
     const lastH = highlights[highlights.length - 1];
     if (lastH && (timestamp - lastH.timestamp < 1000)) return;
 
-    const h = { id: 'h_'+timestamp, type, timestamp, duration, value };
+    const h = { id: 'h_' + timestamp, type, timestamp, duration, value };
     highlights.push(h);
     self.postMessage({ type: 'HIGHLIGHT', payload: h });
 }
@@ -239,9 +221,9 @@ function processSensorData() {
     // Calculate variance (standard deviation) of accel magnitude to detect vibration texture
     let stdDev = 0;
     if (accelBuffer.length > 5) {
-        const mags = accelBuffer.map(a => Math.sqrt(a.x**2 + a.y**2 + a.z**2));
+        const mags = accelBuffer.map(a => Math.sqrt(a.x*a.x + a.y*a.y + a.z*a.z));
         const mean = mags.reduce((a,b)=>a+b,0) / mags.length;
-        stdDev = Math.sqrt(mags.map(x => (x-mean)**2).reduce((a,b)=>a+b,0) / mags.length);
+        stdDev = Math.sqrt(mags.map(x => (x-mean)*(x-mean)).reduce((a,b)=>a+b,0) / mags.length);
     }
 
     const currentSpeed = lastPosition?.speed ?? 0;
@@ -293,27 +275,30 @@ function startTracking(stance) {
     accelBuffer = [];
     gyroBuffer = [];
     
-    self.addEventListener('devicemotion', handleDeviceMotion);
+    if (intervalId !== null) clearInterval(intervalId);
     intervalId = setInterval(processSensorData, 200); // 5Hz updates to UI
 }
 
 function stopTracking() {
-    if (intervalId !== null) clearInterval(intervalId);
-    self.removeEventListener('devicemotion', handleDeviceMotion);
+    if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+    }
     
+    const now = Date.now();
     const session = {
         id: 'session_' + startTime,
         startTime,
-        endTime: Date.now(),
+        endTime: now,
         stance: userStance,
         totalDistance,
-        activeTime: (Date.now() - startTime) / 1000,
+        activeTime: (now - startTime) / 1000,
         timeOnBoard,
         timeOffBoard,
         topSpeed,
         path,
         highlights,
-        counts // Pass the aggregate counts
+        counts
     };
     self.postMessage({ type: 'SESSION_END', payload: session });
 }
@@ -329,6 +314,9 @@ self.onmessage = (event) => {
             break;
         case 'POSITION_UPDATE':
             handlePositionUpdate(payload);
+            break;
+        case 'MOTION':
+            handleDeviceMotion(payload);
             break;
     }
 };
