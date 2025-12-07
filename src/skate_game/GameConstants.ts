@@ -1,4 +1,3 @@
-
 import { ObstacleType } from './GameTypes';
 
 export const KAI_IMAGE_URL = "./assets/kai/kai_intro.png";
@@ -8,22 +7,40 @@ export const BASE_FLOOR_Y = 250;
 export const SPEED = 7;
 
 // --- KAI SPRITE ASSETS ---
+// These link to REAL PNG files inside: public/assets/kai/
+
 export const KAI_SPRITES = {
-    RIDE: [new Image(), new Image(), new Image(), new Image()],
-    PUSH: [new Image(), new Image()]
+    RIDE: [
+        new Image(),
+        new Image(),
+        new Image(),
+        new Image()
+    ],
+    PUSH: [
+        new Image(),
+        new Image()
+    ]
 };
 
-// Initialize placeholders 
-KAI_SPRITES.RIDE[0].src = "https://placehold.co/100x150/333/FFF/png?text=Ride+1";
-KAI_SPRITES.RIDE[1].src = "https://placehold.co/100x150/333/FFF/png?text=Ride+2";
-KAI_SPRITES.RIDE[2].src = "https://placehold.co/100x150/333/FFF/png?text=Ride+3";
-KAI_SPRITES.RIDE[3].src = "https://placehold.co/100x150/333/FFF/png?text=Ride+4";
+// Load actual sprite images (GitHub Pages + Vite compatible)
+KAI_SPRITES.RIDE[0].src = "./assets/kai/kai_ride_1.png";
+KAI_SPRITES.RIDE[1].src = "./assets/kai/kai_ride_2.png";
+KAI_SPRITES.RIDE[2].src = "./assets/kai/kai_ride_3.png";
+KAI_SPRITES.RIDE[3].src = "./assets/kai/kai_ride_4.png";
 
-KAI_SPRITES.PUSH[0].src = "https://placehold.co/100x150/c52323/FFF/png?text=Push+1";
-KAI_SPRITES.PUSH[1].src = "https://placehold.co/100x150/c52323/FFF/png?text=Push+2";
+KAI_SPRITES.PUSH[0].src = "./assets/kai/kai_push_1.png";
+KAI_SPRITES.PUSH[1].src = "./assets/kai/kai_push_2.png";
 
 
-export const STANDARD_OBSTACLES: { type: ObstacleType, w: number, h: number, grind: boolean, gap: boolean, isPlatform?: boolean, yOffset?: number }[] = [
+export const STANDARD_OBSTACLES: { 
+    type: ObstacleType,
+    w: number,
+    h: number,
+    grind: boolean,
+    gap: boolean,
+    isPlatform?: boolean,
+    yOffset?: number
+}[] = [
     { type: 'hydrant', w: 30, h: 40, grind: true, gap: false }, 
     { type: 'police_car', w: 100, h: 50, grind: false, gap: false }, 
     { type: 'cybertruck', w: 120, h: 50, grind: true, gap: false },
