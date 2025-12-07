@@ -1,7 +1,7 @@
 
 import { ObstacleType } from './GameTypes';
 
-export const KAI_IMAGE_URL = "https://images.unsplash.com/photo-1520045864941-8974ad6b2f0d?q=80&w=400&auto=format&fit=crop";
+export const KAI_IMAGE_URL = "./assets/kai/kai_intro.png";
 export const GRAVITY = 0.6;
 export const JUMP_FORCE = -18; 
 export const BASE_FLOOR_Y = 250; 
