@@ -2,31 +2,6 @@ import React, { useRef, useEffect } from 'react';
 import { KAI_SPRITES } from './GameConstants';
 import { CharacterType, ObstacleType } from './GameTypes';
 
-// ========= SAFE KAI SPRITE LOADER (no other system touched) ========= //
-
-function loadImage(src: string): HTMLImageElement {
-    const img = new Image();
-    img.src = src;
-    return img;
-}
-
-// If the game never filled KAI_SPRITES, we safely fill them here
-if (!KAI_SPRITES.PUSH?.length || !KAI_SPRITES.RIDE?.length) {
-    KAI_SPRITES.PUSH = [
-        loadImage('/assets/kai/kai_push_1.png'),
-        loadImage('/assets/kai/kai_push_2.png')
-    ];
-
-    KAI_SPRITES.RIDE = [
-        loadImage('/assets/kai/kai_ride_1.png'),
-        loadImage('/assets/kai/kai_ride_2.png'),
-        loadImage('/assets/kai/kai_ride_3.png'),
-        loadImage('/assets/kai/kai_ride_4.png')
-    ];
-}
-
-
-
 // Re-export types for compatibility with other files if they import from here
 export type { CharacterType, ObstacleType };
 
@@ -584,15 +559,13 @@ export function drawStickman(
         const drawW = 50; 
         const drawH = 75; 
         
-if (imageToDraw && imageToDraw.complete) {
-    ctx.drawImage(imageToDraw, -drawW/2, -drawH + 25, drawW, drawH);
-} else {
-    // Tiny debug text that will NOT cover the sprite
-    ctx.fillStyle = '#c52323';
-    ctx.font = '10px Arial';
-    ctx.fillText("Loading", -15, -10);
-}
-
+        if (imageToDraw && imageToDraw.complete) {
+             ctx.drawImage(imageToDraw, -drawW/2, -drawH + 25, drawW, drawH);
+        } else {
+            ctx.fillStyle = '#c52323';
+            ctx.font = '10px Arial';
+            ctx.fillText("Loading...", -20, -20);
+        }
 
         ctx.restore();
         return; 
