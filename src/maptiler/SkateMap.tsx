@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 const MAPTILER_KEY: string = '4gpXL4qS0zO5bGwk6mFK';
 
 // Use a high-contrast dark style for the "Invert" aesthetic
-const MAP_STYLE = `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${MAPTILER_KEY}`;
+const MAP_STYLE = `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`;
 
 export type GpsPoint = {
     lat: number;
