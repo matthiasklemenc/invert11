@@ -1,7 +1,9 @@
-
 // quick build id to verify we’re on the latest bundle
 ;(window as any).__BUILD_ID__ = 'build-' + new Date().toISOString();
 console.log('Loaded', (window as any).__BUILD_ID__);
+
+// 🔥 CRITICAL FIX — load your Tailwind + custom CSS
+import './index.css';   // <-- this was missing
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
