@@ -3,7 +3,7 @@
 console.log('Loaded', (window as any).__BUILD_ID__);
 
 // 🔥 CRITICAL FIX — load your Tailwind + custom CSS
-import './public/index.css';
+import './index.css';
 
 
 import React from 'react';
