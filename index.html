@@ -24,7 +24,7 @@
       rel="stylesheet"
     />
 
-    <!-- Tailwind CDN: this powers all the className styling in your app -->
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- MapLibre CSS + JS -->
@@ -42,12 +42,15 @@
       ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #718096; }
     </style>
+
+    <!-- ⭐ FIXED: Your global styling file is correctly loaded again -->
+    <link rel="stylesheet" href="./index.css" />
   </head>
 
   <body class="bg-gray-900">
     <div id="root"></div>
 
-    <!-- Dev entry. In the build, Vite replaces this with the hashed JS in docs/index.html -->
+    <!-- Dev entry. Vite replaces this in production -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
