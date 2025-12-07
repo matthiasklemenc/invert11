@@ -60,7 +60,6 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
         };
     }, [onSessionEnd]);
 
-}, [onSessionEnd]);  // <-- end of first useEffect
 
 // DEBUG: verify devicemotion is firing on the phone
 useEffect(() => {
