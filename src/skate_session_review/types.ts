@@ -1,3 +1,4 @@
+// C:\Users\user\Desktop\invert\build\src\skate_session_review\types.ts
 
 export type GpsPoint = {
     lat: number;
@@ -14,7 +15,7 @@ export type HighlightType =
     | 'BS_GRIND' 
     | 'STALL' 
     | 'SLAM' 
-    | 'IMPACT'; // Fallback
+    | 'IMPACT';
 
 export type Highlight = {
     id: string;
@@ -22,6 +23,16 @@ export type Highlight = {
     timestamp: number;
     duration: number; // For airtime, grind, carve
     value: number; // For impact G-force, etc.
+};
+
+export type TrickCounts = {
+    pumps: number;
+    ollies: number;
+    airs: number;
+    fsGrinds: number;
+    bsGrinds: number;
+    stalls: number;
+    slams: number;
 };
 
 export type SkateSession = {
@@ -36,16 +47,10 @@ export type SkateSession = {
     topSpeed: number; // m/s
     path: GpsPoint[];
     highlights: Highlight[];
-    // Pre-calculated counts for UI convenience
-    counts: {
-        pumps: number;
-        ollies: number;
-        airs: number;
-        fsGrinds: number;
-        bsGrinds: number;
-        stalls: number;
-        slams: number;
-    }
+    counts: TrickCounts;
+    // New detailed metrics
+    bestTrick: Highlight | null;
+    longestGrind: number; // in seconds
 };
 
 export type TrackerState = {
@@ -58,11 +63,11 @@ export type TrackerState = {
     timeOffBoard: number;
     currentSpeed: number;
     topSpeed: number;
-    isRolling: boolean; // True if on board, False if walking/standing
-    debugMessage?: string; // For testing sensor logic
+    isRolling: boolean;
+    debugMessage?: string;
+    counts: TrickCounts;
 };
 
-// Data sent from main thread to worker for a position update
 export type PositionUpdatePayload = {
     coords: {
         latitude: number;
@@ -72,14 +77,12 @@ export type PositionUpdatePayload = {
     timestamp: number;
 };
 
-// Types for messages sent TO the worker
 export type WorkerCommand = 
     | { type: 'START', payload: { stance: 'REGULAR' | 'GOOFY' } }
     | { type: 'STOP' }
-    | { type: 'POSITION_UPDATE', payload: PositionUpdatePayload };
+    | { type: 'POSITION_UPDATE', payload: PositionUpdatePayload }
+    | { type: 'MOTION', payload: any };
 
-
-// Types for messages received FROM the worker
 export type WorkerMessage =
     | { type: 'UPDATE'; payload: TrackerState }
     | { type: 'HIGHLIGHT'; payload: Highlight }

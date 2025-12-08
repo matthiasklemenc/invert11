@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { SkateSession } from './types';
+import { SkateSession, Highlight } from './types';
 import SkateMap from '../maptiler/SkateMap';
 import SessionTimeline from './SessionTimeline';
 
@@ -29,16 +28,43 @@ const HighlightRow: React.FC<{ label: string; count: number; icon: string }> = (
     </div>
 );
 
+const BestTrickDisplay: React.FC<{ trick: Highlight | null }> = ({ trick }) => {
+    if (!trick) return null;
+    
+    // Fix: Explicitly type `label` as a string to allow assigning custom string values.
+    let label: string = trick.type;
+    let value = "";
+
+    if (trick.type === "AIR" || trick.type === "OLLIE") {
+        label = "Longest Air";
+        value = `${trick.duration.toFixed(2)}s`;
+    } else if (trick.type.includes("GRIND") || trick.type === "STALL") {
+        label = "Best Grind";
+        value = `${trick.duration.toFixed(2)}s`;
+    } else {
+        return null; // Don't show for slams etc.
+    }
+
+    return (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-lg text-center">
+            <div className="text-xs uppercase text-yellow-400 font-bold tracking-wider">Best Trick</div>
+            <div className="text-2xl font-bold text-white mt-1">{label}</div>
+            <div className="text-3xl font-mono font-black text-yellow-300">{value}</div>
+        </div>
+    );
+};
+
 const SessionReviewPage: React.FC<{
     session: SkateSession;
     onClose: () => void;
 }> = ({ session, onClose }) => {
     
-    // Calculate defaults if old session format
     const timeOn = session.timeOnBoard ?? session.activeTime;
     const timeOff = session.timeOffBoard ?? 0;
     const avgSpeed = timeOn > 0 ? (session.totalDistance / timeOn) : 0;
     const counts = session.counts || { pumps: 0, ollies: 0, airs: 0, fsGrinds: 0, bsGrinds: 0, stalls: 0, slams: 0 };
+    const longestGrind = session.longestGrind || 0;
+    const bestTrick = session.bestTrick || null;
 
     return (
         <div className="min-h-screen bg-gray-900 text-white p-4">
@@ -52,7 +78,6 @@ const SessionReviewPage: React.FC<{
             </header>
 
             <main className="max-w-4xl mx-auto space-y-6">
-                {/* Primary Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard label="Total Distance" value={formatDistance(session.totalDistance)} unit="km" />
                     <StatCard label="Top Speed" value={formatSpeed(session.topSpeed)} unit="km/h" />
@@ -60,7 +85,6 @@ const SessionReviewPage: React.FC<{
                     <StatCard label="Stance" value={session.stance || '-'} unit="" color="text-yellow-400" />
                 </div>
 
-                {/* Time Breakdown */}
                 <div className="bg-neutral-800 p-4 rounded-lg border border-white/5">
                     <h3 className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-4">Time Analysis</h3>
                     <div className="flex gap-4">
@@ -75,32 +99,37 @@ const SessionReviewPage: React.FC<{
                     </div>
                 </div>
                 
-                {/* Map */}
-                {session.path.length > 1 ? (
+                {session.path.length > 1 && (
                      <div className="bg-neutral-800 p-2 rounded-lg border border-white/5">
                         <SkateMap path={session.path} className="h-72 w-full rounded-lg" />
                     </div>
-                ) : (
-                    <div className="bg-neutral-800 p-4 rounded-lg text-center text-gray-500">
-                        No GPS data available for map.
-                    </div>
                 )}
 
-                {/* Tricks Breakdown */}
-                <div className="bg-neutral-800 p-6 rounded-lg border border-white/5">
-                    <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Session Highlights</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
-                        <HighlightRow label="Ollies" count={counts.ollies} icon="🛹" />
-                        <HighlightRow label="Airs / Jumps" count={counts.airs} icon="✈️" />
-                        <HighlightRow label="FS Grinds" count={counts.fsGrinds} icon="➡️" />
-                        <HighlightRow label="BS Grinds" count={counts.bsGrinds} icon="⬅️" />
-                        <HighlightRow label="50-50 / Stalls" count={counts.stalls} icon="⏸️" />
-                        <HighlightRow label="Pumps" count={counts.pumps} icon="🌊" />
-                        <HighlightRow label="Slams / Bails" count={counts.slams} icon="💥" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-neutral-800 p-6 rounded-lg border border-white/5">
+                        <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Session Highlights</h3>
+                        <div className="space-y-1">
+                            <HighlightRow label="Ollies" count={counts.ollies} icon="🛹" />
+                            <HighlightRow label="Airs / Jumps" count={counts.airs} icon="✈️" />
+                            <HighlightRow label="FS Grinds" count={counts.fsGrinds} icon="➡️" />
+                            <HighlightRow label="BS Grinds" count={counts.bsGrinds} icon="⬅️" />
+                            <HighlightRow label="Stalls" count={counts.stalls} icon="⏸️" />
+                            <HighlightRow label="Pumps" count={counts.pumps} icon="🌊" />
+                            <HighlightRow label="Slams / Bails" count={counts.slams} icon="💥" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {bestTrick && <BestTrickDisplay trick={bestTrick} />}
+                        {longestGrind > 0 && (
+                             <div className="bg-neutral-800 p-4 rounded-lg text-center border border-white/5">
+                                <div className="text-xs uppercase text-neutral-400 font-bold">Longest Grind</div>
+                                <div className="text-3xl font-mono font-black text-white mt-1">{longestGrind.toFixed(2)}s</div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Timeline */}
                 <div className="bg-neutral-800 p-4 rounded-lg border border-white/5">
                     <h3 className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-3">Timeline</h3>
                     <SessionTimeline session={session} />
