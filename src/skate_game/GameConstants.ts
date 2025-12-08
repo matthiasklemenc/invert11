@@ -1,13 +1,15 @@
 import { ObstacleType } from './GameTypes';
 
+// Intro image for the start page (correct GitHub Pages path)
 export const KAI_IMAGE_URL = "./assets/kai/kai_intro.png";
+
 export const GRAVITY = 0.6;
-export const JUMP_FORCE = -18; 
-export const BASE_FLOOR_Y = 250; 
+export const JUMP_FORCE = -18;
+export const BASE_FLOOR_Y = 250;
 export const SPEED = 7;
 
 // --- KAI SPRITE ASSETS ---
-// These link to REAL PNG files inside: public/assets/kai/
+// These MUST match files in public/assets/kai/
 
 export const KAI_SPRITES = {
     RIDE: [
@@ -22,7 +24,7 @@ export const KAI_SPRITES = {
     ]
 };
 
-// Load actual sprite images (GitHub Pages + Vite compatible)
+// Load sprite PNGs (GitHub Pages + Vite-safe)
 KAI_SPRITES.RIDE[0].src = "./assets/kai/kai_ride_1.png";
 KAI_SPRITES.RIDE[1].src = "./assets/kai/kai_ride_2.png";
 KAI_SPRITES.RIDE[2].src = "./assets/kai/kai_ride_3.png";
@@ -32,7 +34,8 @@ KAI_SPRITES.PUSH[0].src = "./assets/kai/kai_push_1.png";
 KAI_SPRITES.PUSH[1].src = "./assets/kai/kai_push_2.png";
 
 
-export const STANDARD_OBSTACLES: { 
+// --- OBSTACLES ---
+export const STANDARD_OBSTACLES: {
     type: ObstacleType,
     w: number,
     h: number,
@@ -41,20 +44,21 @@ export const STANDARD_OBSTACLES: {
     isPlatform?: boolean,
     yOffset?: number
 }[] = [
-    { type: 'hydrant', w: 30, h: 40, grind: true, gap: false }, 
-    { type: 'police_car', w: 100, h: 50, grind: false, gap: false }, 
+    { type: 'hydrant', w: 30, h: 40, grind: true, gap: false },
+    { type: 'police_car', w: 100, h: 50, grind: false, gap: false },
     { type: 'cybertruck', w: 120, h: 50, grind: true, gap: false },
     { type: 'cart', w: 50, h: 50, grind: false, gap: false },
     { type: 'ledge', w: 150, h: 30, grind: true, gap: false },
     { type: 'curb', w: 40, h: 15, grind: true, gap: false },
-    { type: 'rail', w: 100, h: 40, grind: true, gap: false }, 
-    { type: 'flat_rail', w: 120, h: 20, grind: true, gap: false }, 
+    { type: 'rail', w: 100, h: 40, grind: true, gap: false },
+    { type: 'flat_rail', w: 120, h: 20, grind: true, gap: false },
     { type: 'bin', w: 40, h: 60, grind: false, gap: false },
     { type: 'grey_bin', w: 40, h: 60, grind: false, gap: false },
     { type: 'ramp', w: 160, h: 40, grind: false, gap: false, isPlatform: true },
-    { type: 'gap', w: 100, h: 10, grind: false, gap: true, yOffset: 10 }, 
+    { type: 'gap', w: 100, h: 10, grind: false, gap: true, yOffset: 10 },
 ];
 
+// --- SCORE FORMATTER ---
 export const formatScore = (s: number) => {
     const absScore = Math.floor(Math.abs(s)).toString().padStart(6, '0');
     return s < 0 ? `-${absScore}` : absScore;
