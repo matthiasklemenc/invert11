@@ -10,6 +10,7 @@ import type {
 } from './types';
 import { workerString } from './tracker.worker';
 
+// Fix: Add counts to initialState to match the updated TrackerState type.
 const initialState: TrackerState = {
     status: 'idle',
     stance: 'REGULAR',
@@ -22,6 +23,15 @@ const initialState: TrackerState = {
     topSpeed: 0,
     isRolling: false,
     debugMessage: '',
+    counts: {
+        pumps: 0,
+        ollies: 0,
+        airs: 0,
+        fsGrinds: 0,
+        bsGrinds: 0,
+        stalls: 0,
+        slams: 0,
+    },
 };
 
 export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) => {
@@ -85,8 +95,8 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
         function handleMotion(e: DeviceMotionEvent) {
             motionReceivedRef.current = true;
 
-            // prefer raw acceleration if available
-            const accRaw = e.acceleration || e.accelerationIncludingGravity;
+            // 🔥 FIX: Standardize on accelerationIncludingGravity for robust physics
+            const accRaw = e.accelerationIncludingGravity;
             const rot = e.rotationRate;
 
             const motionPayload = {
