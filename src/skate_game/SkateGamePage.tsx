@@ -37,9 +37,9 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
         };
 
         checkMobile();
-
         window.addEventListener("resize", handleResize);
         window.addEventListener("orientationchange", handleResize);
+
         return () => {
             window.removeEventListener("resize", handleResize);
             window.removeEventListener("orientationchange", handleResize);
@@ -91,40 +91,78 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
         closeShop
     } = useSkateGame();
 
-    // --- CANVAS RESOLUTION MANAGER ---
+    // -------------------------------------------------------
+    // 🔥 REAL MOBILE CANVAS FIX — NEVER INVISIBLE AGAIN
+    // -------------------------------------------------------
+    function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+
+        // Prevent invisible 0-height/0-width bug
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const displayWidth = Math.round(rect.width * dpr);
+        const displayHeight = Math.round(rect.height * dpr);
+
+        if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+        }
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.scale(dpr, dpr);
+        }
+    }
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        resizeCanvasToDisplaySize(canvas);
+
+        const sync = () => resizeCanvasToDisplaySize(canvas);
+        window.addEventListener("resize", sync);
+        window.addEventListener("orientationchange", sync);
+
+        return () => {
+            window.removeEventListener("resize", sync);
+            window.removeEventListener("orientationchange", sync);
+        };
+    }, [canvasRef]);
+
+    // -------------------------------------------------------
+    // OPTIONAL: Your own logical-resolution system (kept)
+    // -------------------------------------------------------
     useEffect(() => {
         const updateResolution = () => {
             const canvas = canvasRef.current;
             if (!canvas) return;
-            
-            // Fixed logical height ensures the game world scales properly visually.
-            // The game logic assumes a floor at Y=250. 
-            // Setting height to 360px places the floor at approx 70% down the screen, 
-            // which is a good ratio for gameplay.
-            const TARGET_HEIGHT = 360; 
-            
-            // Get the current display size from CSS layout (which is 100% width/height)
+
+            const TARGET_HEIGHT = 360;
+
             const rect = canvas.getBoundingClientRect();
-            if (rect.height === 0) return; 
-            
+            if (rect.height === 0) return;
+
             const aspect = rect.width / rect.height;
-            
-            // Set the internal drawing buffer size
-            // This decouples the game logic coordinates from the physical screen pixels
+
             canvas.height = TARGET_HEIGHT;
             canvas.width = TARGET_HEIGHT * aspect;
         };
-        
+
         updateResolution();
-        window.addEventListener('resize', updateResolution);
-        window.addEventListener('orientationchange', updateResolution);
-        
+        window.addEventListener("resize", updateResolution);
+        window.addEventListener("orientationchange", updateResolution);
+
         return () => {
-            window.removeEventListener('resize', updateResolution);
-            window.removeEventListener('orientationchange', updateResolution);
+            window.removeEventListener("resize", updateResolution);
+            window.removeEventListener("orientationchange", updateResolution);
         };
     }, [canvasRef]);
 
+    // -----------------------------------------
+    // 🔥 SPACEBAR JUMP ON DESKTOP
+    // -----------------------------------------
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.code === "Space") {
@@ -136,9 +174,7 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
         };
 
         window.addEventListener("keydown", handleKeyDown);
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-        };
+        return () => window.removeEventListener("keydown", handleKeyDown);
     }, [uiState, isPaused, triggerAction]);
 
     // -----------------------------------------
@@ -215,7 +251,7 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
                 className="w-full flex-grow bg-gray-900"
                 style={{
                     width: "100%",
-                    height: "100%", // Fill the parent container completely
+                    height: "100%",
                     display: "block"
                 }}
             />
