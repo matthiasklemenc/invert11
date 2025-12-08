@@ -1,11 +1,11 @@
-// This file is not imported directly. Its content is imported as a string in useSkateTracker.ts
-// and used to create a worker blob.
+// This file is imported as a string inside useSkateTracker.ts
 
 export const workerString = `
+
 // --- Worker Scope ---
 let intervalId = null;
 
-// Session State
+// Session state
 let userStance = 'REGULAR';
 let startTime = null;
 let lastTimestamp = null;
@@ -22,9 +22,9 @@ let lastPosition = null;
 let accelBuffer = [];
 let gyroBuffer = [];
 
-const BUFFER_SIZE = 40; // ~2 seconds at 20hz
+const BUFFER_SIZE = 40; // ~1.2–2s depending on sampling rate
 
-// Event Counts
+// Event counters
 let counts = {
     pumps: 0,
     ollies: 0,
@@ -35,20 +35,24 @@ let counts = {
     slams: 0
 };
 
-// Thresholds
-const FREEFALL_THRESHOLD = 0.3;
-const IMPACT_THRESHOLD = 2.5;
-const SLAM_THRESHOLD = 5.0;
-const ROTATION_THRESHOLD = 200;
+// ---------------------------------------------------------------------------
+// ** NEW REALME-COMPATIBLE THRESHOLDS **
+// ---------------------------------------------------------------------------
+// Realme UI filters accelerationIncludingGravity → reduced motion amplitude
+// Using raw acceleration + lower thresholds gives reliable detection.
+const FREEFALL_THRESHOLD = 0.6;   // was 0.3
+const IMPACT_THRESHOLD = 1.6;     // was 2.5
+const SLAM_THRESHOLD = 3.5;       // was 5.0
+const ROTATION_THRESHOLD = 110;   // was 200 → Realme under-reports rotation
 
-// State machines
+// State for trick detection
 let freefallStart = 0;
 let potentialGrindStart = 0;
 let entryRotation = 0;
 
-// ---------------------------------------------------------
-// Helper Functions
-// ---------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Distance calculation
+// ---------------------------------------------------------------------------
 
 function haversineDistance(p1, p2) {
     const R = 6371e3;
@@ -66,9 +70,9 @@ function haversineDistance(p1, p2) {
     return R * c;
 }
 
-// ---------------------------------------------------------
-// GPS Update Handling
-// ---------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Handle GPS updates
+// ---------------------------------------------------------------------------
 
 function handlePositionUpdate(position) {
     const { latitude, longitude, speed } = position.coords;
@@ -93,29 +97,18 @@ function handlePositionUpdate(position) {
     const dt = (timestamp - lastPosition.timestamp) / 1000 || 1;
     const dist = haversineDistance(lastPosition, current);
 
-    // Estimate fallback speed
-    let effectiveSpeed = speed;
-    if (effectiveSpeed == null) {
-        effectiveSpeed = dist / dt;
-    }
+    // Fallback speed estimate
+    let effectiveSpeed = speed ?? (dist / dt);
 
-    // Reject impossible GPS noise (> 30 m/s = 108 km/h)
-    if (effectiveSpeed < 0 || effectiveSpeed > 30) {
-        return;
-    }
+    // Reject impossible noise
+    if (effectiveSpeed < 0 || effectiveSpeed > 30) return;
+    if (dist > 20 && dt < 5) return;
 
-    // Indoors drift filter: ignore random 20–200m jumps
-    if (dist > 20 && dt < 5) {
-        return;
-    }
-
-    // Don't count standing as distance
     if (effectiveSpeed < 0.2) {
         lastPosition = current;
         return;
     }
 
-    // Accept point
     path.push(current);
     totalDistance += dist;
 
@@ -126,9 +119,9 @@ function handlePositionUpdate(position) {
     lastPosition = current;
 }
 
-// ---------------------------------------------------------
-// Motion Data Handling
-// ---------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Handle motion coming from globalMotion.js → worker
+// ---------------------------------------------------------------------------
 
 function handleDeviceMotion(data) {
     const { acc, rot, timestamp } = data;
@@ -141,21 +134,21 @@ function handleDeviceMotion(data) {
     if (gyroBuffer.length > BUFFER_SIZE) gyroBuffer.shift();
 }
 
+// ---------------------------------------------------------------------------
+// Determine if user is rolling or standing
+// ---------------------------------------------------------------------------
+
 function classifyActivity(speed, stdDev) {
-    if (speed > 2.5) return true; // skating > 9 km/h
-
-    if (speed < 0.5 && stdDev < 0.1) return false; // standing
-
-    if (stdDev > 0.6) return false; // walking
-
-    if (stdDev > 0.05 && stdDev < 0.5) return true;
-
+    if (speed > 2.0) return true; // skating > 7 km/h
+    if (speed < 0.4 && stdDev < 0.12) return false;
+    if (stdDev > 0.7) return false; // walking vibration
+    if (stdDev > 0.05) return true;
     return false;
 }
 
-// ---------------------------------------------------------
-// Trick Detection
-// ---------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Trick detection (OLLIE, AIR, SLAM, GRIND, STALL)
+// ---------------------------------------------------------------------------
 
 function detectTricks(speed) {
     if (accelBuffer.length < 5 || gyroBuffer.length < 1) return;
@@ -163,23 +156,25 @@ function detectTricks(speed) {
     const a = accelBuffer[accelBuffer.length - 1];
     const g = gyroBuffer[gyroBuffer.length - 1];
 
-    const gForce = Math.sqrt(a.x ** 2 + a.y ** 2 + a.z ** 2) / 9.81;
+    const gForce = Math.sqrt(a.x**2 + a.y**2 + a.z**2) / 9.81;
 
-    // FREEFALL
+    // -----------------------------------------------------------------------
+    // FREEFALL → AIR / OLLIE / SLAM
+    // -----------------------------------------------------------------------
     if (gForce < FREEFALL_THRESHOLD) {
         if (!freefallStart) freefallStart = a.timestamp;
     } else if (freefallStart) {
         const airTime = (a.timestamp - freefallStart) / 1000;
 
         if (gForce > SLAM_THRESHOLD) {
-            addHighlight("SLAM", a.timestamp, 0, gForce);
+            addHighlight("SLAM", a.timestamp, airTime, gForce);
             counts.slams++;
-            isRolling = false;
-        } else if (gForce > IMPACT_THRESHOLD) {
-            if (airTime > 0.4) {
+        }
+        else if (gForce > IMPACT_THRESHOLD) {
+            if (airTime > 0.40) {
                 addHighlight("AIR", a.timestamp, airTime, gForce);
                 counts.airs++;
-            } else if (airTime > 0.15) {
+            } else if (airTime > 0.12) {
                 addHighlight("OLLIE", a.timestamp, airTime, gForce);
                 counts.ollies++;
             }
@@ -188,15 +183,19 @@ function detectTricks(speed) {
         freefallStart = 0;
     }
 
-    // ROTATION FOR GRINDS
+    // -----------------------------------------------------------------------
+    // ROTATION → GRIND / STALL
+    // -----------------------------------------------------------------------
+
     if (Math.abs(g.alpha) > ROTATION_THRESHOLD) {
         entryRotation = g.alpha;
         potentialGrindStart = a.timestamp;
     }
 
-    if (potentialGrindStart && (a.timestamp - potentialGrindStart < 500)) {
+    if (potentialGrindStart && (a.timestamp - potentialGrindStart < 450)) {
         const t = a.timestamp - potentialGrindStart;
-        if (t > 200 && Math.abs(g.alpha) < 50) {
+
+        if (t > 150 && Math.abs(g.alpha) < 45) {
             classifyGrind(entryRotation, t / 1000);
             potentialGrindStart = 0;
         }
@@ -204,6 +203,10 @@ function detectTricks(speed) {
         potentialGrindStart = 0;
     }
 }
+
+// ---------------------------------------------------------------------------
+// Grind classifier
+// ---------------------------------------------------------------------------
 
 function classifyGrind(rotAlpha, duration) {
     let frontside = false;
@@ -231,6 +234,10 @@ function classifyGrind(rotAlpha, duration) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Highlight emitter
+// ---------------------------------------------------------------------------
+
 function addHighlight(type, timestamp, duration, value) {
     const lastH = highlights[highlights.length - 1];
     if (lastH && timestamp - lastH.timestamp < 300) return;
@@ -240,28 +247,28 @@ function addHighlight(type, timestamp, duration, value) {
     self.postMessage({ type: "HIGHLIGHT", payload: h });
 }
 
-// ---------------------------------------------------------
-// Processing Loop
-// ---------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Processing loop (200ms)
+// ---------------------------------------------------------------------------
 
 function processSensorData() {
     const now = Date.now();
-    if (!startTime) return; // session not ready yet
+    if (!startTime) return;
 
     if (!lastTimestamp) lastTimestamp = now;
     const dt = (now - lastTimestamp) / 1000;
 
-    // STDDEV
+    // Compute motion stddev
     let stdDev = 0;
     if (accelBuffer.length > 5) {
-        const mags = accelBuffer.map(a => Math.sqrt(a.x ** 2 + a.y ** 2 + a.z ** 2));
-        const mean = mags.reduce((a, b) => a + b, 0) / mags.length;
-        stdDev = Math.sqrt(mags.map(x => (x - mean) ** 2).reduce((a, b) => a + b, 0) / mags.length);
+        const mags = accelBuffer.map(a => Math.sqrt(a.x**2 + a.y**2 + a.z**2));
+        const mean = mags.reduce((a,b)=>a+b,0) / mags.length;
+        stdDev = Math.sqrt(
+            mags.map(x => (x-mean)**2).reduce((a,b)=>a+b,0) / mags.length
+        );
     }
 
     let speed = lastPosition?.speed ?? 0;
-
-    // Reject absurd speeds but allow up to 108 km/h
     if (speed < 0 || speed > 30) speed = 0;
 
     isRolling = classifyActivity(speed, stdDev);
@@ -292,15 +299,15 @@ function processSensorData() {
     lastTimestamp = now;
 }
 
-// ---------------------------------------------------------
-// Start / Stop Session
-// ---------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Start / Stop session
+// ---------------------------------------------------------------------------
 
 function startTracking(stance) {
-    // FULL CLEAN RESET
     userStance = stance;
     startTime = Date.now();
     lastTimestamp = startTime;
+
     totalDistance = 0;
     timeOnBoard = 0;
     timeOffBoard = 0;
@@ -309,7 +316,6 @@ function startTracking(stance) {
 
     path = [];
     highlights = [];
-    lastPosition = null;
     accelBuffer = [];
     gyroBuffer = [];
 
@@ -357,9 +363,9 @@ function stopTracking() {
     self.postMessage({ type: "SESSION_END", payload: session });
 }
 
-// ---------------------------------------------------------
-// Worker Message Router
-// ---------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Message routing
+// ---------------------------------------------------------------------------
 
 self.onmessage = evt => {
     const { type, payload } = evt.data;
@@ -368,18 +374,16 @@ self.onmessage = evt => {
         case "START":
             startTracking(payload.stance);
             break;
-
         case "STOP":
             stopTracking();
             break;
-
         case "POSITION_UPDATE":
             handlePositionUpdate(payload);
             break;
-
         case "MOTION":
             handleDeviceMotion(payload);
             break;
     }
 };
+
 `;
