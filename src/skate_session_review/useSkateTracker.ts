@@ -1,12 +1,9 @@
-// skate_session_review/useSkateTracker.ts
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type {
     SkateSession,
     TrackerState,
     WorkerCommand,
     WorkerMessage,
-    PositionUpdatePayload
 } from './types';
 import { workerString } from './tracker.worker';
 
@@ -24,19 +21,27 @@ const initialState: TrackerState = {
     debugMessage: '',
 };
 
-export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) => {
+declare global {
+    interface Window {
+        _latestMotion: any;
+    }
+}
+
+export const useSkateTracker = (
+    onSessionEnd: (session: SkateSession) => void
+) => {
     const [trackerState, setTrackerState] = useState<TrackerState>(initialState);
     const [error, setError] = useState<string | null>(null);
 
     const workerRef = useRef<Worker | null>(null);
     const watchIdRef = useRef<number | null>(null);
-    const motionListenerRef = useRef<(e: DeviceMotionEvent) => void>();
+    const motionIntervalRef = useRef<number | null>(null);
 
     // -----------------------------------------------------
-    // Worker creation / teardown
+    // Worker Setup
     // -----------------------------------------------------
     useEffect(() => {
-        const blob = new Blob([workerString], { type: "application/javascript" });
+        const blob = new Blob([workerString], { type: 'application/javascript' });
         const workerUrl = URL.createObjectURL(blob);
         const worker = new Worker(workerUrl);
         workerRef.current = worker;
@@ -45,26 +50,25 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
             const { type, payload } = event.data;
 
             switch (type) {
-                case "UPDATE":
+                case 'UPDATE':
                     setTrackerState(prev => ({
                         ...prev,
                         ...payload,
-                        debugMessage: prev.debugMessage || ""
                     }));
                     setError(null);
                     break;
 
-                case "SESSION_END":
+                case 'SESSION_END':
                     onSessionEnd(payload);
                     setTrackerState(initialState);
                     break;
 
-                case "ERROR":
+                case 'ERROR':
                     setError(payload.message);
                     setTrackerState(prev => ({
                         ...prev,
-                        status: "error",
-                        debugMessage: payload.message
+                        status: 'error',
+                        debugMessage: payload.message,
                     }));
                     break;
             }
@@ -77,165 +81,101 @@ export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) =
         };
     }, [onSessionEnd]);
 
-    // -----------------------------------------------------
-    // Remove existing motion listener helper
-    // -----------------------------------------------------
-    const removeMotionListener = () => {
-        if (motionListenerRef.current) {
-            window.removeEventListener("devicemotion", motionListenerRef.current);
-            motionListenerRef.current = undefined;
-        }
-    };
 
     // -----------------------------------------------------
-    // Stop tracking
+    // STOP TRACKING
     // -----------------------------------------------------
     const stopTracking = useCallback(() => {
-        workerRef.current?.postMessage({ type: "STOP" } as WorkerCommand);
+        workerRef.current?.postMessage({ type: 'STOP' });
 
         if (watchIdRef.current !== null) {
             navigator.geolocation.clearWatch(watchIdRef.current);
             watchIdRef.current = null;
         }
 
-        removeMotionListener();
+        if (motionIntervalRef.current !== null) {
+            clearInterval(motionIntervalRef.current);
+            motionIntervalRef.current = null;
+        }
     }, []);
 
     // -----------------------------------------------------
-    // Start tracking
+    // START TRACKING
     // -----------------------------------------------------
     const startTracking = useCallback(
-        async (stance: "REGULAR" | "GOOFY") => {
+        async (stance: 'REGULAR' | 'GOOFY') => {
             setError(null);
 
             setTrackerState({
                 ...initialState,
                 stance,
-                status: "tracking",
-                debugMessage: "",
+                status: 'tracking',
             });
 
-            // iOS motion permission
-            if (typeof (DeviceMotionEvent as any).requestPermission === "function") {
+            // Motion permission for iOS
+            if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
                 try {
                     const permission = await (DeviceMotionEvent as any).requestPermission();
-                    if (permission !== "granted") {
-                        const msg = "Motion sensor permission denied.";
+                    if (permission !== 'granted') {
+                        const msg = 'Motion permission denied.';
                         setError(msg);
-                        setTrackerState(prev => ({
-                            ...prev,
-                            status: "denied",
-                            debugMessage: msg,
-                        }));
                         return;
                     }
-                } catch (err) {
-                    const msg = "Motion sensor permission request failed.";
+                } catch {
+                    const msg = 'Motion permission request failed.';
                     setError(msg);
-                    setTrackerState(prev => ({
-                        ...prev,
-                        status: "error",
-                        debugMessage: msg,
-                    }));
                     return;
                 }
             }
 
-            // Remove old motion listener to avoid dead pipeline
-            removeMotionListener();
-
-            // Create fresh motion listener bound to CURRENT workerRef
-            const handleMotion = (e: DeviceMotionEvent) => {
-                const worker = workerRef.current;
-                if (!worker) return;
-
-                const acc = e.accelerationIncludingGravity;
-                const rot = e.rotationRate;
-
-                worker.postMessage({
-                    type: "MOTION",
-                    payload: {
-                        acc: acc
-                            ? {
-                                  x: acc.x ?? 0,
-                                  y: acc.y ?? 0,
-                                  z: acc.z ?? 0,
-                              }
-                            : null,
-                        rot: rot
-                            ? {
-                                  alpha: rot.alpha ?? 0,
-                                  beta: rot.beta ?? 0,
-                                  gamma: rot.gamma ?? 0,
-                              }
-                            : null,
-                        timestamp: Date.now()
-                    }
-                });
-            };
-
-            motionListenerRef.current = handleMotion;
-            window.addEventListener("devicemotion", handleMotion, { passive: true });
-
-            // Clear any old watchers
-            if (watchIdRef.current !== null) {
+            // Clear old watchers
+            if (watchIdRef.current) {
                 navigator.geolocation.clearWatch(watchIdRef.current);
                 watchIdRef.current = null;
             }
 
             // Tell worker to start
             workerRef.current?.postMessage({
-                type: "START",
+                type: 'START',
                 payload: { stance },
             } as WorkerCommand);
 
             // GPS watcher
-            try {
-                watchIdRef.current = navigator.geolocation.watchPosition(
-                    position => {
-                        const payload: PositionUpdatePayload = {
+            watchIdRef.current = navigator.geolocation.watchPosition(
+                pos => {
+                    workerRef.current?.postMessage({
+                        type: 'POSITION_UPDATE',
+                        payload: {
                             coords: {
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude,
-                                speed: position.coords.speed,
+                                latitude: pos.coords.latitude,
+                                longitude: pos.coords.longitude,
+                                speed: pos.coords.speed,
                             },
-                            timestamp: position.timestamp,
-                        };
+                            timestamp: pos.timestamp,
+                        },
+                    });
+                },
+                err => {
+                    const message = `GPS Error: ${err.message}`;
+                    setError(message);
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 1000,
+                    timeout: 10000,
+                }
+            );
 
-                        workerRef.current?.postMessage({
-                            type: "POSITION_UPDATE",
-                            payload,
-                        } as WorkerCommand);
-                    },
-                    err => {
-                        const errorMessage = `GPS Error: ${err.message}`;
-
-                        setError(errorMessage);
-                        setTrackerState(prev => ({
-                            ...prev,
-                            status: "error",
-                            debugMessage: errorMessage,
-                        }));
-
-                        if (err.code === err.PERMISSION_DENIED) {
-                            stopTracking();
-                        }
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        maximumAge: 1000,
-                        timeout: 10000,
-                    }
-                );
-            } catch (e: any) {
-                const msg = e?.message || "Geolocation not available.";
-                setError(msg);
-                setTrackerState(prev => ({
-                    ...prev,
-                    status: "error",
-                    debugMessage: msg,
-                }));
-            }
+            // Reliable MOTION FEED (50ms)
+            motionIntervalRef.current = window.setInterval(() => {
+                const motion = window._latestMotion;
+                if (motion && workerRef.current) {
+                    workerRef.current.postMessage({
+                        type: 'MOTION',
+                        payload: motion,
+                    });
+                }
+            }, 50);
         },
         [stopTracking]
     );
