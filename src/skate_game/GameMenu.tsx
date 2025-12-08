@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Carousel3D from '../Carousel3D';
 import CharacterPreview from './CharacterPreview';
@@ -41,11 +40,12 @@ const GameMenu: React.FC<GameMenuProps> = ({
                 <span className="font-bold tracking-wider">EXIT</span>
             </button>
 
-<img 
-    src="./assets/game/invert_the_game_transpartent_small.png"
-    alt="INVERT THE GAME"
-    className="w-32 max-w-full h-auto mb-2 object-contain drop-shadow-[0_0_15px_rgba(197,35,35,0.5)]"
-/>
+            {/* ✅ FIXED: correct path for mobile + GitHub Pages */}
+            <img 
+                src="./asstes/game/invert_the_game_transpartent_small.png"
+                alt="INVERT THE GAME"
+                className="w-32 max-w-full h-auto mb-2 object-contain drop-shadow-[0_0_15px_rgba(197,35,35,0.5)]"
+            />
             
             <div className="mb-4 text-center">
                  <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">High Score</span>
