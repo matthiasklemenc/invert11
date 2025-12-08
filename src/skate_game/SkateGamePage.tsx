@@ -51,6 +51,12 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
     // -----------------------------------------
     useEffect(() => {
         const fixVH = () => {
+            if (
+                typeof window === "undefined" ||
+                typeof document === "undefined"
+            )
+                return;
+
             document.documentElement.style.setProperty(
                 "--vh",
                 `${window.innerHeight * 0.01}px`
@@ -111,6 +117,9 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
 
         const ctx = canvas.getContext("2d");
         if (ctx) {
+            // ✅ IMPORTANT: reset transform before scaling,
+            // so we don't keep scaling on every resize/orientation change.
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
         }
     }
@@ -121,7 +130,11 @@ export default function SkateGamePage({ onClose }: { onClose: () => void }) {
 
         resizeCanvasToDisplaySize(canvas);
 
-        const sync = () => resizeCanvasToDisplaySize(canvas);
+        const sync = () => {
+            if (!canvasRef.current) return;
+            resizeCanvasToDisplaySize(canvasRef.current);
+        };
+
         window.addEventListener("resize", sync);
         window.addEventListener("orientationchange", sync);
 
