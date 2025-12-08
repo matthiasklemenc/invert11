@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
 
+    <!-- Prevent caching -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -14,8 +15,9 @@
     <!-- Icons + Manifest -->
     <link rel="icon" type="image/png" href="./icons/icon-512.png" />
     <link rel="apple-touch-icon" href="./icons/icon-512.png" />
-    <link rel="manifest" href="/invert11/manifest.webmanifest" />
 
+    <!-- FIXED: manifest must be RELATIVE -->
+    <link rel="manifest" href="./manifest.webmanifest" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -44,14 +46,14 @@
       ::-webkit-scrollbar-thumb:hover { background: #718096; }
     </style>
 
-    <!-- ⭐ FIXED: Your global styling file is correctly loaded again -->
+    <!-- Global CSS -->
     <link rel="stylesheet" href="./index.css" />
   </head>
 
   <body class="bg-gray-900">
     <div id="root"></div>
 
-    <!-- Dev entry. Vite replaces this in production -->
-    <script type="module" src="/index.tsx"></script>
+    <!-- FIXED: Vite entry point MUST be relative -->
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
