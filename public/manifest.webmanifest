@@ -3,7 +3,7 @@
   "short_name": "INVERT FM",
   "description": "INVERT FM is a creative app for music lovers and skateboarders. Discover royalty-free music and skateboard related functions.",
   "id": "/invert11/",
-  "start_url": "/invert11/",
+  "start_url": "/invert11/index.html",
   "scope": "/invert11/",
   "display": "standalone",
   "background_color": "#111827",
