@@ -489,17 +489,15 @@ ${Je}`.slice(-1e3))}),z(Je=>(Je?Je+`
 // --- Worker Scope ---
 let intervalId = null;
 
-// Config
-let userStance = 'REGULAR'; // 'REGULAR' or 'GOOFY'
-
-// State
-let startTime = 0;
-let lastTimestamp = 0;
+// Session State
+let userStance = 'REGULAR';
+let startTime = null;
+let lastTimestamp = null;
 let totalDistance = 0;
 let timeOnBoard = 0;
 let timeOffBoard = 0;
 let topSpeed = 0;
-let isRolling = false; // "On Board" state
+let isRolling = false;
 
 // Buffers
 let path = [];
@@ -507,9 +505,10 @@ let highlights = [];
 let lastPosition = null;
 let accelBuffer = [];
 let gyroBuffer = [];
+
 const BUFFER_SIZE = 40; // ~2 seconds at 20hz
 
-// Counts
+// Event Counts
 let counts = {
     pumps: 0,
     ollies: 0,
@@ -520,18 +519,20 @@ let counts = {
     slams: 0
 };
 
-// Thresholds (can be tuned later)
-const FREEFALL_THRESHOLD = 0.3;     // G-force near 0
-const IMPACT_THRESHOLD = 2.5;       // Landing G-force
-const SLAM_THRESHOLD = 5.0;         // Slam/Bail
-const ROTATION_THRESHOLD = 200;     // deg/s for turns
+// Thresholds
+const FREEFALL_THRESHOLD = 0.3;
+const IMPACT_THRESHOLD = 2.5;
+const SLAM_THRESHOLD = 5.0;
+const ROTATION_THRESHOLD = 200;
 
-// Detection State Machines
+// State machines
 let freefallStart = 0;
 let potentialGrindStart = 0;
-let entryRotation = 0; // To calc FS vs BS
+let entryRotation = 0;
 
-// --- Helpers -------------------------------------------------------------
+// ---------------------------------------------------------
+// Helper Functions
+// ---------------------------------------------------------
 
 function haversineDistance(p1, p2) {
     const R = 6371e3;
@@ -541,15 +542,17 @@ function haversineDistance(p1, p2) {
     const dLambda = (p2.lon - p1.lon) * Math.PI / 180;
 
     const a =
-        Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
+        Math.sin(dPhi / 2) ** 2 +
         Math.cos(phi1) * Math.cos(phi2) *
-        Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+        Math.sin(dLambda / 2) ** 2;
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
 
-// --- Position / GPS ------------------------------------------------------
+// ---------------------------------------------------------
+// GPS Update Handling
+// ---------------------------------------------------------
 
 function handlePositionUpdate(position) {
     const { latitude, longitude, speed } = position.coords;
@@ -557,7 +560,7 @@ function handlePositionUpdate(position) {
 
     if (latitude == null || longitude == null) return;
 
-    const currentPosition = {
+    const current = {
         lat: latitude,
         lon: longitude,
         timestamp,
@@ -565,160 +568,121 @@ function handlePositionUpdate(position) {
     };
 
     if (!lastPosition) {
-        // First point of the session
-        lastPosition = currentPosition;
-        path.push(currentPosition);
-        if (speed != null && speed > 0) {
-            topSpeed = speed;
-        }
+        lastPosition = current;
+        path.push(current);
+        if (speed && speed > 0) topSpeed = speed;
         return;
     }
 
-    const distance = haversineDistance(lastPosition, currentPosition);
     const dt = (timestamp - lastPosition.timestamp) / 1000 || 1;
+    const dist = haversineDistance(lastPosition, current);
 
-    // Estimate speed from distance/time if GPS.speed is missing
+    // Estimate fallback speed
     let effectiveSpeed = speed;
     if (effectiveSpeed == null) {
-        effectiveSpeed = distance / dt; // m/s
+        effectiveSpeed = dist / dt;
     }
 
-    // Sanity filter for GPS glitches:
-    // - ignore negative or absurd speeds (> 30 m/s ≈ 108 km/h)
-    //   (still allows real 50 km/h skating)
+    // Reject impossible GPS noise (> 30 m/s = 108 km/h)
     if (effectiveSpeed < 0 || effectiveSpeed > 30) {
-        // Ignore this point entirely (no path, no distance)
         return;
     }
 
-    // If we're basically standing (< 0.2 m/s ≈ 0.7 km/h), don't accumulate distance
+    // Indoors drift filter: ignore random 20–200m jumps
+    if (dist > 20 && dt < 5) {
+        return;
+    }
+
+    // Don't count standing as distance
     if (effectiveSpeed < 0.2) {
-        lastPosition = currentPosition;
-        // Optionally still push to path if you want small jitter shown:
-        // path.push(currentPosition);
+        lastPosition = current;
         return;
     }
 
-    // Indoors / GPS drift filter:
-    // If a single jump is more than ~20 m (with small time delta), it's likely noise.
-    if (distance > 20 && dt < 5) {
-        // Ignore crazy jump; don't move lastPosition so the line stays tight
-        return;
-    }
+    // Accept point
+    path.push(current);
+    totalDistance += dist;
 
-    // Accept this point
-    path.push(currentPosition);
-    totalDistance += distance;
-
-    if (effectiveSpeed != null && effectiveSpeed > topSpeed) {
+    if (effectiveSpeed > topSpeed) {
         topSpeed = effectiveSpeed;
     }
 
-    lastPosition = currentPosition;
+    lastPosition = current;
 }
 
-// --- Motion / IMU --------------------------------------------------------
+// ---------------------------------------------------------
+// Motion Data Handling
+// ---------------------------------------------------------
 
-function handleDeviceMotion(payload) {
-    const acc = payload.acc;
-    const rot = payload.rot;
-    const timestamp = payload.timestamp;
-
+function handleDeviceMotion(data) {
+    const { acc, rot, timestamp } = data;
     if (!acc || !rot) return;
 
-    accelBuffer.push({
-        x: acc.x,
-        y: acc.y,
-        z: acc.z,
-        timestamp
-    });
-
-    gyroBuffer.push({
-        alpha: rot.alpha,
-        beta: rot.beta,
-        gamma: rot.gamma,
-        timestamp
-    });
+    accelBuffer.push({ x: acc.x, y: acc.y, z: acc.z, timestamp });
+    gyroBuffer.push({ alpha: rot.alpha, beta: rot.beta, gamma: rot.gamma, timestamp });
 
     if (accelBuffer.length > BUFFER_SIZE) accelBuffer.shift();
     if (gyroBuffer.length > BUFFER_SIZE) gyroBuffer.shift();
 }
 
-function classifyActivity(speed, stdDevAccel) {
-    // 1. High speed: very likely skating
-    if (speed > 2.5) return true; // > 9 km/h
+function classifyActivity(speed, stdDev) {
+    if (speed > 2.5) return true; // skating > 9 km/h
 
-    // 2. If slow, see vibration / texture
-    if (speed < 0.5 && stdDevAccel < 0.1) return false; // standing
+    if (speed < 0.5 && stdDev < 0.1) return false; // standing
 
-    // Walking produces high variance spikes
-    if (stdDevAccel > 0.6) return false; // walking / running
+    if (stdDev > 0.6) return false; // walking
 
-    // Skating: smooth, mid variance hum
-    if (stdDevAccel > 0.05 && stdDevAccel < 0.5) return true;
+    if (stdDev > 0.05 && stdDev < 0.5) return true;
 
     return false;
 }
 
-function detectTricks(currentSpeed) {
+// ---------------------------------------------------------
+// Trick Detection
+// ---------------------------------------------------------
+
+function detectTricks(speed) {
     if (accelBuffer.length < 5 || gyroBuffer.length < 1) return;
 
-    const lastAcc = accelBuffer[accelBuffer.length - 1];
-    const lastGyro = gyroBuffer[gyroBuffer.length - 1];
+    const a = accelBuffer[accelBuffer.length - 1];
+    const g = gyroBuffer[gyroBuffer.length - 1];
 
-    const gForce =
-        Math.sqrt(
-            lastAcc.x * lastAcc.x +
-            lastAcc.y * lastAcc.y +
-            lastAcc.z * lastAcc.z
-        ) / 9.81;
+    const gForce = Math.sqrt(a.x ** 2 + a.y ** 2 + a.z ** 2) / 9.81;
 
-    // --- 1. AIR / OLLIE / SLAM DETECTION -------------------------
+    // FREEFALL
     if (gForce < FREEFALL_THRESHOLD) {
-        if (freefallStart === 0) freefallStart = lastAcc.timestamp;
-    } else {
-        if (freefallStart > 0) {
-            const airTime = (lastAcc.timestamp - freefallStart) / 1000;
+        if (!freefallStart) freefallStart = a.timestamp;
+    } else if (freefallStart) {
+        const airTime = (a.timestamp - freefallStart) / 1000;
 
-            if (gForce > IMPACT_THRESHOLD) {
-                if (gForce > SLAM_THRESHOLD) {
-                    addHighlight('SLAM', lastAcc.timestamp, 0, gForce);
-                    counts.slams++;
-                    isRolling = false;
-                } else if (airTime > 0.4) {
-                    addHighlight('AIR', lastAcc.timestamp, airTime, gForce);
-                    counts.airs++;
-                } else if (airTime > 0.15) {
-                    addHighlight('OLLIE', lastAcc.timestamp, airTime, gForce);
-                    counts.ollies++;
-                }
+        if (gForce > SLAM_THRESHOLD) {
+            addHighlight("SLAM", a.timestamp, 0, gForce);
+            counts.slams++;
+            isRolling = false;
+        } else if (gForce > IMPACT_THRESHOLD) {
+            if (airTime > 0.4) {
+                addHighlight("AIR", a.timestamp, airTime, gForce);
+                counts.airs++;
+            } else if (airTime > 0.15) {
+                addHighlight("OLLIE", a.timestamp, airTime, gForce);
+                counts.ollies++;
             }
-            freefallStart = 0;
         }
+
+        freefallStart = 0;
     }
 
-    // --- 2. PUMP DETECTION (very rough, kept conservative) -------
-    if (gForce > 1.3 && gForce < 2.0 && freefallStart === 0 && isRolling) {
-        // counts.pumps++; // enable later when tuned
+    // ROTATION FOR GRINDS
+    if (Math.abs(g.alpha) > ROTATION_THRESHOLD) {
+        entryRotation = g.alpha;
+        potentialGrindStart = a.timestamp;
     }
 
-    // --- 3. GRIND / STALL DETECTION ------------------------------
-    if (lastGyro && Math.abs(lastGyro.alpha) > ROTATION_THRESHOLD) {
-        entryRotation = lastGyro.alpha;
-        potentialGrindStart = lastAcc.timestamp;
-    }
-
-    if (
-        potentialGrindStart > 0 &&
-        (lastAcc.timestamp - potentialGrindStart < 500)
-    ) {
-        const timeSinceRot = lastAcc.timestamp - potentialGrindStart;
-
-        if (timeSinceRot > 100 && Math.abs(lastGyro.alpha) < 50) {
-            if (timeSinceRot > 200) {
-                classifyGrind(entryRotation, timeSinceRot / 1000);
-                potentialGrindStart = 0;
-            }
+    if (potentialGrindStart && (a.timestamp - potentialGrindStart < 500)) {
+        const t = a.timestamp - potentialGrindStart;
+        if (t > 200 && Math.abs(g.alpha) < 50) {
+            classifyGrind(entryRotation, t / 1000);
+            potentialGrindStart = 0;
         }
     } else {
         potentialGrindStart = 0;
@@ -726,116 +690,99 @@ function detectTricks(currentSpeed) {
 }
 
 function classifyGrind(rotAlpha, duration) {
-    let isFrontside = false;
+    let frontside = false;
 
     if (userStance === 'REGULAR') {
-        if (rotAlpha > 0) isFrontside = true; // turn left
+        frontside = rotAlpha > 0;
     } else {
-        if (rotAlpha < 0) isFrontside = true; // turn right
+        frontside = rotAlpha < 0;
     }
 
-    const type = isFrontside ? 'FS_GRIND' : 'BS_GRIND';
+    const speed = lastPosition?.speed ?? 0;
 
-    const currentSpeed = lastPosition ? (lastPosition.speed || 0) : 0;
-    if (currentSpeed < 1.0) {
-        addHighlight('STALL', Date.now(), duration, 0);
+    if (speed < 1.0) {
+        addHighlight("STALL", Date.now(), duration, 0);
         counts.stalls++;
+        return;
+    }
+
+    if (frontside) {
+        addHighlight("FS_GRIND", Date.now(), duration, 0);
+        counts.fsGrinds++;
     } else {
-        addHighlight(type, Date.now(), duration, 0);
-        if (isFrontside) counts.fsGrinds++;
-        else counts.bsGrinds++;
+        addHighlight("BS_GRIND", Date.now(), duration, 0);
+        counts.bsGrinds++;
     }
 }
-
-// --- Highlights / UI -----------------------------------------------------
 
 function addHighlight(type, timestamp, duration, value) {
     const lastH = highlights[highlights.length - 1];
-    if (lastH && (timestamp - lastH.timestamp < 300)) return;
+    if (lastH && timestamp - lastH.timestamp < 300) return;
 
-    const h = {
-        id: 'h_' + timestamp,
-        type,
-        timestamp,
-        duration,
-        value
-    };
+    const h = { id: "h_" + timestamp, type, timestamp, duration, value };
     highlights.push(h);
-    self.postMessage({ type: 'HIGHLIGHT', payload: h });
+    self.postMessage({ type: "HIGHLIGHT", payload: h });
 }
 
-// --- Main processing loop ------------------------------------------------
+// ---------------------------------------------------------
+// Processing Loop
+// ---------------------------------------------------------
 
 function processSensorData() {
     const now = Date.now();
+    if (!startTime) return; // session not ready yet
 
-    if (!startTime) {
-        startTime = now;
-        lastTimestamp = now;
-    }
+    if (!lastTimestamp) lastTimestamp = now;
+    const dt = (now - lastTimestamp) / 1000;
 
-    const deltaTime = lastTimestamp ? (now - lastTimestamp) / 1000 : 0;
-
-    // Standard deviation of accel magnitude
+    // STDDEV
     let stdDev = 0;
     if (accelBuffer.length > 5) {
-        const mags = accelBuffer.map(function (a) {
-            return Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
-        });
-        const mean = mags.reduce(function (a, b) { return a + b; }, 0) / mags.length;
-        stdDev = Math.sqrt(
-            mags
-                .map(function (x) { return (x - mean) * (x - mean); })
-                .reduce(function (a, b) { return a + b; }, 0) / mags.length
-        );
+        const mags = accelBuffer.map(a => Math.sqrt(a.x ** 2 + a.y ** 2 + a.z ** 2));
+        const mean = mags.reduce((a, b) => a + b, 0) / mags.length;
+        stdDev = Math.sqrt(mags.map(x => (x - mean) ** 2).reduce((a, b) => a + b, 0) / mags.length);
     }
 
-    let currentSpeed = lastPosition ? (lastPosition.speed || 0) : 0;
+    let speed = lastPosition?.speed ?? 0;
 
-    // Clamp impossible speeds (still allow 50 km/h+ sessions)
-    if (currentSpeed < 0 || currentSpeed > 30) {
-        currentSpeed = 0;
-    }
+    // Reject absurd speeds but allow up to 108 km/h
+    if (speed < 0 || speed > 30) speed = 0;
 
-    isRolling = classifyActivity(currentSpeed, stdDev);
+    isRolling = classifyActivity(speed, stdDev);
 
     if (isRolling) {
-        timeOnBoard += deltaTime;
-        detectTricks(currentSpeed);
+        timeOnBoard += dt;
+        detectTricks(speed);
     } else {
-        timeOffBoard += deltaTime;
+        timeOffBoard += dt;
     }
 
     self.postMessage({
-        type: 'UPDATE',
+        type: "UPDATE",
         payload: {
-            status: 'tracking',
+            status: "tracking",
             stance: userStance,
-            startTime: startTime,
-            totalDistance: totalDistance,
+            startTime,
+            totalDistance,
             duration: (now - startTime) / 1000,
-            timeOnBoard: timeOnBoard,
-            timeOffBoard: timeOffBoard,
-            currentSpeed: currentSpeed,
-            topSpeed: topSpeed,
-            isRolling: isRolling
+            timeOnBoard,
+            timeOffBoard,
+            currentSpeed: speed,
+            topSpeed,
+            isRolling
         }
     });
 
     lastTimestamp = now;
 }
 
-// --- Start / Stop --------------------------------------------------------
+// ---------------------------------------------------------
+// Start / Stop Session
+// ---------------------------------------------------------
 
 function startTracking(stance) {
-    // Full reset to avoid leftover state between sessions
+    // FULL CLEAN RESET
     userStance = stance;
-
-    if (intervalId !== null) {
-        clearInterval(intervalId);
-        intervalId = null;
-    }
-
     startTime = Date.now();
     lastTimestamp = startTime;
     totalDistance = 0;
@@ -846,6 +793,10 @@ function startTracking(stance) {
 
     path = [];
     highlights = [];
+    lastPosition = null;
+    accelBuffer = [];
+    gyroBuffer = [];
+
     counts = {
         pumps: 0,
         ollies: 0,
@@ -856,15 +807,12 @@ function startTracking(stance) {
         slams: 0
     };
 
-    lastPosition = null;
-    accelBuffer = [];
-    gyroBuffer = [];
-
     freefallStart = 0;
     potentialGrindStart = 0;
     entryRotation = 0;
 
-    intervalId = setInterval(processSensorData, 200); // 5 Hz UI updates
+    if (intervalId !== null) clearInterval(intervalId);
+    intervalId = setInterval(processSensorData, 200);
 }
 
 function stopTracking() {
@@ -873,46 +821,47 @@ function stopTracking() {
         intervalId = null;
     }
 
-    const now = Date.now();
+    const end = Date.now();
+
     const session = {
-        id: 'session_' + startTime,
-        startTime: startTime,
-        endTime: now,
+        id: "session_" + startTime,
+        startTime,
+        endTime: end,
         stance: userStance,
-        totalDistance: totalDistance,
-        activeTime: (now - startTime) / 1000,
-        timeOnBoard: timeOnBoard,
-        timeOffBoard: timeOffBoard,
-        topSpeed: topSpeed,
-        path: path,
-        highlights: highlights,
-        counts: counts
+        totalDistance,
+        activeTime: (end - startTime) / 1000,
+        timeOnBoard,
+        timeOffBoard,
+        topSpeed,
+        path,
+        highlights,
+        counts
     };
 
-    self.postMessage({ type: 'SESSION_END', payload: session });
-
-    // Optionally reset minimal state here for cleanliness
-    startTime = 0;
+    self.postMessage({ type: "SESSION_END", payload: session });
 }
 
-// --- Message handling ----------------------------------------------------
+// ---------------------------------------------------------
+// Worker Message Router
+// ---------------------------------------------------------
 
-self.onmessage = function (event) {
-    const data = event.data || {};
-    const type = data.type;
-    const payload = data.payload;
+self.onmessage = evt => {
+    const { type, payload } = evt.data;
 
     switch (type) {
-        case 'START':
+        case "START":
             startTracking(payload.stance);
             break;
-        case 'STOP':
+
+        case "STOP":
             stopTracking();
             break;
-        case 'POSITION_UPDATE':
+
+        case "POSITION_UPDATE":
             handlePositionUpdate(payload);
             break;
-        case 'MOTION':
+
+        case "MOTION":
             handleDeviceMotion(payload);
             break;
     }
