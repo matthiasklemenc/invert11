@@ -1,22 +1,22 @@
 {
   "name": "INVERT FM",
   "short_name": "INVERT FM",
-  "description": "INVERT FM – Your Sound, Your Rules, Your Scene. Discover royalty-free music and sculpt your sound with pro-grade controls.",
-  "id": "/invertfm/",
-  "start_url": "/invertfm/",
-  "scope": "/invertfm/",
+  "description": "INVERT FM is a creative app for music lovers and skateboarders. Discover royalty-free music and skateboard related functions.",
+  "id": "/invert11/",
+  "start_url": "/invert11/",
+  "scope": "/invert11/",
   "display": "standalone",
   "background_color": "#111827",
   "theme_color": "#4f46e5",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/invert11/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/invert11/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
