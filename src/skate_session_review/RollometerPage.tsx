@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import type { SkateSession } from './types';
 import { useSkateTracker } from './useSkateTracker';
@@ -31,6 +30,7 @@ const ControllerIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
     </svg>
 );
 
+// utility formats…
 const formatDistance = (meters: number) => {
     if (meters < 1000) return `${meters.toFixed(0)} m`;
     return `${(meters / 1000).toFixed(2)} km`;
@@ -56,21 +56,36 @@ const RollometerPage: React.FC<{
     onViewSession: (session: SkateSession) => void;
     onSetPage: (page: any) => void;
 }> = ({ onClose, sessions, onAddSession, onDeleteSession, onViewSession, onSetPage }) => {
+
     const { trackerState, error, startTracking, stopTracking } = useSkateTracker(onAddSession);
     const [stance, setStance] = useState<'REGULAR' | 'GOOFY'>('REGULAR');
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [displayMonth, setDisplayMonth] = useState(new Date());
 
     const filteredSessions = useMemo(() => {
-        return sessions.filter(s => 
+        return sessions.filter(s =>
             new Date(s.startTime).toDateString() === selectedDate.toDateString()
         ).sort((a, b) => b.startTime - a.startTime);
     }, [sessions, selectedDate]);
 
     const isTracking = trackerState.status === 'tracking';
 
+    // ------------------------------------------------------------------
+    // NEW FIX: unify trick counts from worker
+    // ------------------------------------------------------------------
+    const trickCounts = trackerState?.counts || {
+        ollies: 0,
+        airs: 0,
+        fsGrinds: 0,
+        bsGrinds: 0,
+        stalls: 0,
+        pumps: 0,
+        slams: 0,
+    };
+
     return (
         <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 flex flex-col">
+            
             {/* Header */}
             <header className="flex items-center justify-between mb-6 relative h-10">
                 <button onClick={onClose} className="text-white hover:text-gray-300 transition-colors z-10 p-2 -ml-2">
@@ -83,37 +98,25 @@ const RollometerPage: React.FC<{
 
             <main className="w-full max-w-4xl mx-auto space-y-8">
                 
-                {/* --- QUIZ & GAME GRID --- */}
+                {/* SKATE GAME + QUIZ GRID */}
                 <section>
                     <div className="grid grid-cols-2 gap-4">
-                        <button 
-                            onClick={() => onSetPage('skate-game')}
-                            className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-neutral-700 transition-colors group h-32"
-                        >
+                        <button onClick={() => onSetPage('skate-game')} className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 h-32 hover:bg-neutral-700 transition-colors group">
                             <ControllerIcon className="w-10 h-10 text-yellow-500 group-hover:scale-110 transition-transform" />
                             <span className="font-bold text-sm tracking-wide">SKATE GAME</span>
                         </button>
 
-                        <button 
-                            onClick={() => onSetPage('skate-quiz')}
-                            className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-neutral-700 transition-colors group h-32"
-                        >
+                        <button onClick={() => onSetPage('skate-quiz')} className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 h-32 hover:bg-neutral-700 transition-colors group">
                             <SkateboardIcon className="w-10 h-10 text-[#c52323] group-hover:scale-110 transition-transform" />
                             <span className="font-bold text-sm tracking-wide">SKATE QUIZ</span>
                         </button>
-                        
-                        <button 
-                            onClick={() => onSetPage('general-quiz')}
-                            className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-neutral-700 transition-colors group h-32"
-                        >
+
+                        <button onClick={() => onSetPage('general-quiz')} className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 h-32 hover:bg-neutral-700 transition-colors group">
                             <QuestionMarkIcon className="w-10 h-10 text-blue-500 group-hover:scale-110 transition-transform" />
                             <span className="font-bold text-sm tracking-wide">GENERAL QUIZ</span>
                         </button>
 
-                        <button 
-                            onClick={() => onSetPage('capitals-quiz')}
-                            className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-neutral-700 transition-colors group h-32"
-                        >
+                        <button onClick={() => onSetPage('capitals-quiz')} className="bg-neutral-800 p-4 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-3 h-32 hover:bg-neutral-700 transition-colors group">
                             <CityIcon className="w-10 h-10 text-teal-500 group-hover:scale-110 transition-transform" />
                             <span className="font-bold text-sm tracking-wide">CAPITALS QUIZ</span>
                         </button>
@@ -122,7 +125,7 @@ const RollometerPage: React.FC<{
 
                 <div className="border-t border-white/10 my-8"></div>
 
-                {/* --- ROLLOMETER --- */}
+                {/* ---------------- ROLLOMETER ---------------- */}
                 <section>
                     <h2 className="text-lg font-bold text-gray-100 mb-4 flex items-center gap-2">
                         <span className="w-2 h-8 bg-[#c52323] rounded-full block"></span>
@@ -130,9 +133,11 @@ const RollometerPage: React.FC<{
                     </h2>
 
                     <div className="bg-neutral-800 rounded-xl p-6 shadow-xl border border-white/5 mb-6">
+                        
+                        {/* ================== NOT TRACKING ================== */}
                         {!isTracking ? (
                             <div className="text-center">
-                                <h2 className="text-3xl font-black text-white mb-2">START SESSION</h2>
+                                <h2 className="text-3xl font-black mb-2">START SESSION</h2>
                                 <p className="text-gray-400 mb-6 text-sm">Choose your stance to begin tracking.</p>
                                 
                                 <div className="flex justify-center gap-4 mb-8">
@@ -152,52 +157,73 @@ const RollometerPage: React.FC<{
 
                                 <button
                                     onClick={() => startTracking(stance)}
-                                    className="w-full max-w-sm bg-[#c52323] hover:bg-[#a91f1f] text-white font-black py-4 px-8 rounded-full text-xl shadow-lg transition-transform transform active:scale-95"
+                                    className="w-full max-w-sm bg-[#c52323] hover:bg-[#a91f1f] text-white font-black py-4 px-8 rounded-full text-xl shadow-lg transition-transform active:scale-95"
                                 >
                                     GO SKATE
                                 </button>
                             </div>
                         ) : (
-                            <div className="text-center">
-                                <div className="animate-pulse mb-6 flex flex-col items-center">
-                                    <div className="text-[#c52323] font-black text-4xl tracking-widest">RECORDING</div>
-                                    <div className="text-white/50 text-xs mt-1 tracking-widest uppercase">
-                                        {trackerState.isRolling ? "STATUS: SKATING" : "STATUS: CHILLING"}
-                                    </div>
+                        
+                        /* ================== TRACKING ================== */
+                        <div className="text-center">
+                            <div className="animate-pulse mb-6 flex flex-col items-center">
+                                <div className="text-[#c52323] font-black text-4xl tracking-widest">RECORDING</div>
+                                <div className="text-white/50 text-xs mt-1 tracking-widest uppercase">
+                                    {trackerState.isRolling ? "STATUS: SKATING" : "STATUS: CHILLING"}
                                 </div>
-                                
-                                <div className="grid grid-cols-2 gap-4 mb-8">
-                                    <div className="bg-neutral-900/50 p-4 rounded-lg">
-                                        <div className="text-3xl font-mono font-bold">{formatDistance(trackerState.totalDistance)}</div>
-                                        <div className="text-xs text-gray-500 font-bold uppercase">Distance</div>
-                                    </div>
-                                    <div className="bg-neutral-900/50 p-4 rounded-lg">
-                                        <div className="text-3xl font-mono font-bold">{formatTime(trackerState.duration)}</div>
-                                        <div className="text-xs text-gray-500 font-bold uppercase">Duration</div>
-                                    </div>
-                                    <div className="bg-neutral-900/50 p-4 rounded-lg">
-                                        <div className="text-3xl font-mono font-bold text-green-400">{formatTime(trackerState.timeOnBoard)}</div>
-                                        <div className="text-xs text-gray-500 font-bold uppercase">On Board</div>
-                                    </div>
-                                    <div className="bg-neutral-900/50 p-4 rounded-lg">
-                                        <div className="text-3xl font-mono font-bold text-yellow-400">{formatTime(trackerState.timeOffBoard)}</div>
-                                        <div className="text-xs text-gray-500 font-bold uppercase">Off Board</div>
-                                    </div>
-                                </div>
-                                
-                                <div className="mb-6 grid grid-cols-3 gap-2 text-xs font-mono text-gray-400">
-                                     <div>Speed: {formatSpeed(trackerState.currentSpeed)}</div>
-                                     <div>Max: {formatSpeed(trackerState.topSpeed)}</div>
-                                     {trackerState.debugMessage && <div>{trackerState.debugMessage}</div>}
-                                </div>
-
-                                <button
-                                    onClick={stopTracking}
-                                    className="w-full max-w-sm bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg transition-colors"
-                                >
-                                    STOP SESSION
-                                </button>
                             </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 mb-8">
+                                <div className="bg-neutral-900/50 p-4 rounded-lg">
+                                    <div className="text-3xl font-mono font-bold">{formatDistance(trackerState.totalDistance)}</div>
+                                    <div className="text-xs text-gray-500 font-bold uppercase">Distance</div>
+                                </div>
+                                <div className="bg-neutral-900/50 p-4 rounded-lg">
+                                    <div className="text-3xl font-mono font-bold">{formatTime(trackerState.duration)}</div>
+                                    <div className="text-xs text-gray-500 font-bold uppercase">Duration</div>
+                                </div>
+                                <div className="bg-neutral-900/50 p-4 rounded-lg">
+                                    <div className="text-3xl font-mono font-bold text-green-400">{formatTime(trackerState.timeOnBoard)}</div>
+                                    <div className="text-xs text-gray-500 font-bold uppercase">On Board</div>
+                                </div>
+                                <div className="bg-neutral-900/50 p-4 rounded-lg">
+                                    <div className="text-3xl font-mono font-bold text-yellow-400">{formatTime(trackerState.timeOffBoard)}</div>
+                                    <div className="text-xs text-gray-500 font-bold uppercase">Off Board</div>
+                                </div>
+                            </div>
+
+                            {/* ====== NEW LIVE TRICK COUNTER SECTION ====== */}
+                            <div className="bg-neutral-900/40 p-4 rounded-lg mb-8 border border-white/5">
+                                <h3 className="text-xs text-gray-400 font-bold uppercase mb-3 tracking-wider">
+                                    Tricks (Live)
+                                </h3>
+
+                                <div className="grid grid-cols-2 gap-2 text-sm font-mono">
+                                    <div>🛹 Ollies</div><div className="text-right">{trickCounts.ollies}</div>
+                                    <div>✈️ Airs</div><div className="text-right">{trickCounts.airs}</div>
+                                    <div>➡️ FS Grinds</div><div className="text-right">{trickCounts.fsGrinds}</div>
+                                    <div>⬅️ BS Grinds</div><div className="text-right">{trickCounts.bsGrinds}</div>
+                                    <div>⏸️ Stalls</div><div className="text-right">{trickCounts.stalls}</div>
+                                    <div>🌊 Pumps</div><div className="text-right">{trickCounts.pumps}</div>
+                                    <div>💥 Slams</div><div className="text-right">{trickCounts.slams}</div>
+                                </div>
+                            </div>
+                            {/* ====== END TRICK COUNTER ====== */}
+
+                            <div className="mb-6 grid grid-cols-3 gap-2 text-xs font-mono text-gray-400">
+                                <div>Speed: {formatSpeed(trackerState.currentSpeed)}</div>
+                                <div>Max: {formatSpeed(trackerState.topSpeed)}</div>
+                                {trackerState.debugMessage && <div>{trackerState.debugMessage}</div>}
+                            </div>
+
+                            <button
+                                onClick={stopTracking}
+                                className="w-full max-w-sm bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg transition-colors"
+                            >
+                                STOP SESSION
+                            </button>
+                        </div>
+
                         )}
 
                         {error && (
@@ -207,6 +233,7 @@ const RollometerPage: React.FC<{
                         )}
                     </div>
 
+                    {/* CALENDAR + LIST */}
                     <CalendarView 
                         sessions={sessions}
                         selectedDate={selectedDate}
@@ -227,6 +254,7 @@ const RollometerPage: React.FC<{
                         ) : (
                             filteredSessions.map(session => (
                                 <div key={session.id} className="bg-neutral-800 rounded-lg p-4 flex items-center justify-between group hover:bg-neutral-750 transition-colors border border-white/5">
+                                    
                                     <div className="flex-grow cursor-pointer" onClick={() => onViewSession(session)}>
                                         <div className="flex items-center gap-3 mb-1">
                                             <span className="text-lg font-bold text-white">
@@ -236,11 +264,13 @@ const RollometerPage: React.FC<{
                                                 {formatDistance(session.totalDistance)}
                                             </span>
                                         </div>
+
                                         <div className="text-xs text-gray-400 flex gap-3">
                                             <span>⏱ {formatTime(session.activeTime)}</span>
                                             <span>🚀 {formatSpeed(session.topSpeed)}</span>
                                         </div>
                                     </div>
+                                    
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id); }}
                                         className="p-2 text-gray-600 hover:bg-red-900/20 rounded-full transition-colors group"
@@ -252,7 +282,9 @@ const RollometerPage: React.FC<{
                         )}
                     </div>
                 </section>
+
             </main>
+
         </div>
     );
 };
