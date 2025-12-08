@@ -1,9 +1,12 @@
+// skate_session_review/useSkateTracker.ts
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type {
     SkateSession,
     TrackerState,
     WorkerCommand,
     WorkerMessage,
+    PositionUpdatePayload
 } from './types';
 import { workerString } from './tracker.worker';
 
@@ -21,24 +24,18 @@ const initialState: TrackerState = {
     debugMessage: '',
 };
 
-declare global {
-    interface Window {
-        _latestMotion: any;
-    }
-}
-
-export const useSkateTracker = (
-    onSessionEnd: (session: SkateSession) => void
-) => {
+export const useSkateTracker = (onSessionEnd: (session: SkateSession) => void) => {
     const [trackerState, setTrackerState] = useState<TrackerState>(initialState);
     const [error, setError] = useState<string | null>(null);
 
     const workerRef = useRef<Worker | null>(null);
     const watchIdRef = useRef<number | null>(null);
-    const motionIntervalRef = useRef<number | null>(null);
+    const fallbackIntervalRef = useRef<number | null>(null);
+    const motionReceivedRef = useRef(false);
+    const latestMotionRef = useRef<any>(null);
 
     // -----------------------------------------------------
-    // Worker Setup
+    // Worker creation / teardown
     // -----------------------------------------------------
     useEffect(() => {
         const blob = new Blob([workerString], { type: 'application/javascript' });
@@ -81,83 +78,167 @@ export const useSkateTracker = (
         };
     }, [onSessionEnd]);
 
+    // ---------------------------------------------------------
+    // DIRECT MOTION LISTENER (best accuracy)
+    // ---------------------------------------------------------
+    useEffect(() => {
+        function handleMotion(e: DeviceMotionEvent) {
+            motionReceivedRef.current = true;
+
+            // prefer raw acceleration if available
+            const accRaw = e.acceleration || e.accelerationIncludingGravity;
+            const rot = e.rotationRate;
+
+            const motionPayload = {
+                acc: accRaw
+                    ? { x: accRaw.x ?? 0, y: accRaw.y ?? 0, z: accRaw.z ?? 0 }
+                    : null,
+                rot: rot
+                    ? { alpha: rot.alpha ?? 0, beta: rot.beta ?? 0, gamma: rot.gamma ?? 0 }
+                    : null,
+                timestamp: Date.now(),
+            };
+
+            latestMotionRef.current = motionPayload;
+
+            const worker = workerRef.current;
+            if (worker) {
+                worker.postMessage({
+                    type: 'MOTION',
+                    payload: motionPayload,
+                });
+            }
+        }
+
+        window.addEventListener('devicemotion', handleMotion, { passive: true });
+
+        return () => {
+            window.removeEventListener('devicemotion', handleMotion);
+        };
+    }, []);
+
+    // ---------------------------------------------------------
+    // HYBRID FALLBACK (if no motion event arrives)
+    // ---------------------------------------------------------
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (!motionReceivedRef.current) {
+                console.log("⚠ No direct devicemotion events — using fallback polling mode.");
+
+                // Start fallback polling 60Hz
+                fallbackIntervalRef.current = window.setInterval(() => {
+                    const m = latestMotionRef.current;
+                    if (!m) return;
+
+                    workerRef.current?.postMessage({
+                        type: "MOTION",
+                        payload: m,
+                    });
+                }, 16);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     // -----------------------------------------------------
-    // STOP TRACKING
+    // Stop tracking
     // -----------------------------------------------------
     const stopTracking = useCallback(() => {
-        workerRef.current?.postMessage({ type: 'STOP' });
+        workerRef.current?.postMessage({ type: 'STOP' } as WorkerCommand);
 
         if (watchIdRef.current !== null) {
             navigator.geolocation.clearWatch(watchIdRef.current);
             watchIdRef.current = null;
         }
 
-        if (motionIntervalRef.current !== null) {
-            clearInterval(motionIntervalRef.current);
-            motionIntervalRef.current = null;
+        if (fallbackIntervalRef.current !== null) {
+            clearInterval(fallbackIntervalRef.current);
+            fallbackIntervalRef.current = null;
         }
     }, []);
 
     // -----------------------------------------------------
-    // START TRACKING
+    // Start tracking
     // -----------------------------------------------------
     const startTracking = useCallback(
         async (stance: 'REGULAR' | 'GOOFY') => {
             setError(null);
+            motionReceivedRef.current = false; // reset hybrid flag
 
             setTrackerState({
                 ...initialState,
                 stance,
                 status: 'tracking',
+                debugMessage: '',
             });
 
-            // Motion permission for iOS
+            // iOS motion permission (Android ignores this)
             if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
                 try {
-                    const permission = await (DeviceMotionEvent as any).requestPermission();
-                    if (permission !== 'granted') {
-                        const msg = 'Motion permission denied.';
+                    const permissionState = await (DeviceMotionEvent as any).requestPermission();
+                    if (permissionState !== 'granted') {
+                        const msg = 'Motion sensor permission denied.';
                         setError(msg);
+                        setTrackerState(prev => ({
+                            ...prev,
+                            status: 'denied',
+                            debugMessage: msg,
+                        }));
                         return;
                     }
                 } catch {
-                    const msg = 'Motion permission request failed.';
+                    const msg = 'Motion sensor permission request failed.';
                     setError(msg);
+                    setTrackerState(prev => ({
+                        ...prev,
+                        status: 'error',
+                        debugMessage: msg,
+                    }));
                     return;
                 }
             }
 
-            // Clear old watchers
-            if (watchIdRef.current) {
+            // cleanup old GPS watchers
+            if (watchIdRef.current !== null) {
                 navigator.geolocation.clearWatch(watchIdRef.current);
                 watchIdRef.current = null;
             }
 
-            // Tell worker to start
-            workerRef.current?.postMessage({
-                type: 'START',
-                payload: { stance },
-            } as WorkerCommand);
+            // tell worker to begin
+            workerRef.current?.postMessage(
+                { type: 'START', payload: { stance } } as WorkerCommand
+            );
 
             // GPS watcher
             watchIdRef.current = navigator.geolocation.watchPosition(
-                pos => {
+                position => {
+                    const payload: PositionUpdatePayload = {
+                        coords: {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            speed: position.coords.speed,
+                        },
+                        timestamp: position.timestamp,
+                    };
+
                     workerRef.current?.postMessage({
                         type: 'POSITION_UPDATE',
-                        payload: {
-                            coords: {
-                                latitude: pos.coords.latitude,
-                                longitude: pos.coords.longitude,
-                                speed: pos.coords.speed,
-                            },
-                            timestamp: pos.timestamp,
-                        },
-                    });
+                        payload,
+                    } as WorkerCommand);
                 },
                 err => {
-                    const message = `GPS Error: ${err.message}`;
-                    setError(message);
+                    const errorMessage = `GPS Error: ${err.message}`;
+                    setError(errorMessage);
+                    setTrackerState(prev => ({
+                        ...prev,
+                        status: 'error',
+                        debugMessage: errorMessage,
+                    }));
+
+                    if (err.code === err.PERMISSION_DENIED) {
+                        stopTracking();
+                    }
                 },
                 {
                     enableHighAccuracy: true,
@@ -165,17 +246,6 @@ export const useSkateTracker = (
                     timeout: 10000,
                 }
             );
-
-            // Reliable MOTION FEED (50ms)
-            motionIntervalRef.current = window.setInterval(() => {
-                const motion = window._latestMotion;
-                if (motion && workerRef.current) {
-                    workerRef.current.postMessage({
-                        type: 'MOTION',
-                        payload: motion,
-                    });
-                }
-            }, 50);
         },
         [stopTracking]
     );
